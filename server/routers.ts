@@ -1,28 +1,259 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import * as db from "./db";
+
+// Admin procedure - requires admin role
+const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== 'admin') {
+    throw new TRPCError({ code: 'FORBIDDEN', message: '需要管理员权限' });
+  }
+  return next({ ctx });
+});
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
+  
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
+      return { success: true } as const;
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  // User subscription and profile
+  user: router({
+    getSubscription: protectedProcedure.query(async ({ ctx }) => {
+      return await db.getUserSubscription(ctx.user.id);
+    }),
+    
+    getOrders: protectedProcedure.query(async ({ ctx }) => {
+      return await db.getUserOrders(ctx.user.id);
+    }),
+    
+    getTrafficStats: protectedProcedure.query(async ({ ctx }) => {
+      return await db.getUserTrafficStats(ctx.user.id);
+    }),
+  }),
+
+  // Nodes - public for listing, protected for details
+  nodes: router({
+    list: publicProcedure.query(async () => {
+      return await db.getActiveNodes();
+    }),
+    
+    all: adminProcedure.query(async () => {
+      return await db.getAllNodes();
+    }),
+    
+    create: adminProcedure
+      .input(z.object({
+        name: z.string(),
+        country: z.string(),
+        countryCode: z.string(),
+        protocol: z.enum(['vless', 'trojan', 'shadowsocks', 'vmess']),
+        address: z.string(),
+        port: z.number(),
+        settings: z.string().optional(),
+        isActive: z.boolean().default(true),
+        sortOrder: z.number().default(0),
+      }))
+      .mutation(async ({ input }) => {
+        await db.createNode(input);
+        return { success: true };
+      }),
+    
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        country: z.string().optional(),
+        countryCode: z.string().optional(),
+        protocol: z.enum(['vless', 'trojan', 'shadowsocks', 'vmess']).optional(),
+        address: z.string().optional(),
+        port: z.number().optional(),
+        settings: z.string().optional(),
+        isActive: z.boolean().optional(),
+        sortOrder: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await db.updateNode(id, data);
+        return { success: true };
+      }),
+    
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteNode(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // Plans
+  plans: router({
+    list: publicProcedure.query(async () => {
+      return await db.getActivePlans();
+    }),
+    
+    all: adminProcedure.query(async () => {
+      return await db.getAllPlans();
+    }),
+    
+    create: adminProcedure
+      .input(z.object({
+        name: z.string(),
+        description: z.string().optional(),
+        price: z.string(),
+        duration: z.number(),
+        trafficLimit: z.number(),
+        isActive: z.boolean().default(true),
+        sortOrder: z.number().default(0),
+      }))
+      .mutation(async ({ input }) => {
+        await db.createPlan(input);
+        return { success: true };
+      }),
+  }),
+
+  // Orders
+  orders: router({
+    create: protectedProcedure
+      .input(z.object({
+        planId: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const plan = await db.getPlanById(input.planId);
+        if (!plan) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: '套餐不存在' });
+        }
+        
+        const orderNo = await db.createOrder({
+          userId: ctx.user.id,
+          planName: plan.name,
+          amount: plan.price,
+          status: 'pending',
+        });
+        
+        return { orderNo, amount: plan.price };
+      }),
+    
+    all: adminProcedure.query(async () => {
+      return await db.getAllOrders();
+    }),
+    
+    confirm: adminProcedure
+      .input(z.object({
+        orderNo: z.string(),
+        paymentMethod: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const order = await db.getOrderByNo(input.orderNo);
+        if (!order) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: '订单不存在' });
+        }
+        
+        // Update order status
+        await db.updateOrderStatus(input.orderNo, 'paid', input.paymentMethod || 'manual');
+        
+        // Get plan info and activate subscription
+        const plans = await db.getActivePlans();
+        const plan = plans.find(p => p.name === order.planName);
+        if (plan) {
+          await db.activateSubscription(order.userId, plan.name, plan.duration, plan.trafficLimit);
+        }
+        
+        return { success: true };
+      }),
+    
+    cancel: adminProcedure
+      .input(z.object({ orderNo: z.string() }))
+      .mutation(async ({ input }) => {
+        await db.updateOrderStatus(input.orderNo, 'failed');
+        return { success: true };
+      }),
+  }),
+
+  // Admin functions
+  admin: router({
+    getStats: adminProcedure.query(async () => {
+      return await db.getAdminStats();
+    }),
+    
+    getUsers: adminProcedure.query(async () => {
+      return await db.getUsersWithSubscriptions();
+    }),
+    
+    activateUser: adminProcedure
+      .input(z.object({
+        userId: z.number(),
+        planName: z.string(),
+        days: z.number(),
+        trafficLimit: z.number().default(1073741824 * 50), // 50GB default
+      }))
+      .mutation(async ({ input }) => {
+        await db.activateSubscription(input.userId, input.planName, input.days, input.trafficLimit);
+        return { success: true };
+      }),
+  }),
+
+  // Traffic reporting (for client)
+  traffic: router({
+    report: protectedProcedure
+      .input(z.object({
+        upload: z.number(),
+        download: z.number(),
+        nodeId: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await db.logTraffic({
+          userId: ctx.user.id,
+          nodeId: input.nodeId,
+          upload: input.upload,
+          download: input.download,
+        });
+        
+        // Update subscription traffic
+        await db.updateSubscriptionTraffic(ctx.user.id, input.upload + input.download);
+        
+        return { success: true };
+      }),
+    
+    check: protectedProcedure.query(async ({ ctx }) => {
+      const subscription = await db.getUserSubscription(ctx.user.id);
+      
+      if (!subscription) {
+        return { allowed: false, reason: '无有效订阅' };
+      }
+      
+      if (subscription.status !== 'active') {
+        return { allowed: false, reason: '订阅已过期' };
+      }
+      
+      if (new Date(subscription.endDate) < new Date()) {
+        return { allowed: false, reason: '订阅已过期' };
+      }
+      
+      if (subscription.trafficUsed >= subscription.trafficLimit) {
+        return { allowed: false, reason: '流量已用完' };
+      }
+      
+      return { 
+        allowed: true, 
+        subscription: {
+          planName: subscription.planName,
+          trafficUsed: subscription.trafficUsed,
+          trafficLimit: subscription.trafficLimit,
+          endDate: subscription.endDate,
+        }
+      };
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

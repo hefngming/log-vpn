@@ -1,7 +1,17 @@
-import { eq } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { 
+  InsertUser, users, 
+  subscriptions, InsertSubscription, 
+  orders, InsertOrder,
+  nodes, InsertNode,
+  plans, InsertPlan,
+  paymentConfigs,
+  systemSettings,
+  trafficLogs, InsertTrafficLog
+} from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { nanoid } from 'nanoid';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -17,6 +27,8 @@ export async function getDb() {
   }
   return _db;
 }
+
+// ==================== User Functions ====================
 
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
@@ -89,4 +101,302 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getAllUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(users).orderBy(desc(users.createdAt));
+}
+
+export async function getUsersWithSubscriptions() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const userList = await db.select().from(users).orderBy(desc(users.createdAt));
+  const result = [];
+  
+  for (const user of userList) {
+    const sub = await db.select().from(subscriptions)
+      .where(eq(subscriptions.userId, user.id))
+      .orderBy(desc(subscriptions.endDate))
+      .limit(1);
+    
+    result.push({
+      ...user,
+      subscription: sub.length > 0 ? sub[0] : null
+    });
+  }
+  
+  return result;
+}
+
+// ==================== Subscription Functions ====================
+
+export async function getUserSubscription(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(subscriptions)
+    .where(eq(subscriptions.userId, userId))
+    .orderBy(desc(subscriptions.endDate))
+    .limit(1);
+  
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createSubscription(data: InsertSubscription) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.insert(subscriptions).values(data);
+}
+
+export async function activateSubscription(userId: number, planName: string, days: number, trafficLimit: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const now = new Date();
+  const endDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+  
+  // Check if user has existing subscription
+  const existing = await getUserSubscription(userId);
+  
+  if (existing && existing.status === 'active' && new Date(existing.endDate) > now) {
+    // Extend existing subscription
+    const newEndDate = new Date(new Date(existing.endDate).getTime() + days * 24 * 60 * 60 * 1000);
+    await db.update(subscriptions)
+      .set({ 
+        endDate: newEndDate, 
+        planName,
+        trafficLimit: existing.trafficLimit + trafficLimit,
+        updatedAt: now 
+      })
+      .where(eq(subscriptions.id, existing.id));
+  } else {
+    // Create new subscription
+    await db.insert(subscriptions).values({
+      userId,
+      planName,
+      status: 'active',
+      trafficLimit,
+      trafficUsed: 0,
+      startDate: now,
+      endDate,
+    });
+  }
+}
+
+export async function updateSubscriptionTraffic(userId: number, bytesUsed: number) {
+  const db = await getDb();
+  if (!db) return;
+  
+  const sub = await getUserSubscription(userId);
+  if (!sub) return;
+  
+  await db.update(subscriptions)
+    .set({ trafficUsed: sub.trafficUsed + bytesUsed })
+    .where(eq(subscriptions.id, sub.id));
+}
+
+// ==================== Order Functions ====================
+
+export async function createOrder(data: Omit<InsertOrder, 'orderNo'>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const orderNo = `ORD${Date.now()}${nanoid(6)}`;
+  await db.insert(orders).values({ ...data, orderNo });
+  
+  return orderNo;
+}
+
+export async function getOrderByNo(orderNo: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(orders).where(eq(orders.orderNo, orderNo)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserOrders(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(orders)
+    .where(eq(orders.userId, userId))
+    .orderBy(desc(orders.createdAt));
+}
+
+export async function getAllOrders() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(orders).orderBy(desc(orders.createdAt));
+}
+
+export async function updateOrderStatus(orderNo: string, status: 'pending' | 'paid' | 'failed' | 'refunded', paymentMethod?: string) {
+  const db = await getDb();
+  if (!db) return;
+  
+  const updateData: Record<string, unknown> = { status };
+  if (status === 'paid') {
+    updateData.paymentTime = new Date();
+    if (paymentMethod) updateData.paymentMethod = paymentMethod;
+  }
+  
+  await db.update(orders).set(updateData).where(eq(orders.orderNo, orderNo));
+}
+
+// ==================== Node Functions ====================
+
+export async function getAllNodes() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(nodes).orderBy(nodes.sortOrder);
+}
+
+export async function getActiveNodes() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(nodes)
+    .where(eq(nodes.isActive, true))
+    .orderBy(nodes.sortOrder);
+}
+
+export async function createNode(data: InsertNode) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.insert(nodes).values(data);
+}
+
+export async function updateNode(id: number, data: Partial<InsertNode>) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.update(nodes).set(data).where(eq(nodes.id, id));
+}
+
+export async function deleteNode(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.delete(nodes).where(eq(nodes.id, id));
+}
+
+// ==================== Plan Functions ====================
+
+export async function getAllPlans() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(plans).orderBy(plans.sortOrder);
+}
+
+export async function getActivePlans() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(plans)
+    .where(eq(plans.isActive, true))
+    .orderBy(plans.sortOrder);
+}
+
+export async function getPlanById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(plans).where(eq(plans.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createPlan(data: InsertPlan) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.insert(plans).values(data);
+}
+
+// ==================== System Settings Functions ====================
+
+export async function getSetting(key: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1);
+  return result.length > 0 ? result[0].value : undefined;
+}
+
+export async function setSetting(key: string, value: string, description?: string) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.insert(systemSettings)
+    .values({ key, value, description })
+    .onDuplicateKeyUpdate({ set: { value, description } });
+}
+
+// ==================== Traffic Log Functions ====================
+
+export async function logTraffic(data: InsertTrafficLog) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.insert(trafficLogs).values(data);
+}
+
+export async function getUserTrafficStats(userId: number) {
+  const db = await getDb();
+  if (!db) return { upload: 0, download: 0 };
+  
+  const result = await db.select({
+    totalUpload: sql<number>`SUM(upload)`,
+    totalDownload: sql<number>`SUM(download)`,
+  }).from(trafficLogs).where(eq(trafficLogs.userId, userId));
+  
+  return {
+    upload: result[0]?.totalUpload || 0,
+    download: result[0]?.totalDownload || 0,
+  };
+}
+
+// ==================== Stats Functions ====================
+
+export async function getAdminStats() {
+  const db = await getDb();
+  if (!db) return {
+    totalUsers: 0,
+    activeSubscriptions: 0,
+    totalNodes: 0,
+    todayRevenue: 0,
+  };
+  
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  const [userCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(users);
+  const [activeSubCount] = await db.select({ count: sql<number>`COUNT(*)` })
+    .from(subscriptions)
+    .where(and(eq(subscriptions.status, 'active'), gte(subscriptions.endDate, now)));
+  const [nodeCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(nodes).where(eq(nodes.isActive, true));
+  const [revenue] = await db.select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
+    .from(orders)
+    .where(and(eq(orders.status, 'paid'), gte(orders.paymentTime, todayStart)));
+  
+  return {
+    totalUsers: userCount?.count || 0,
+    activeSubscriptions: activeSubCount?.count || 0,
+    totalNodes: nodeCount?.count || 0,
+    todayRevenue: revenue?.total || 0,
+  };
+}
