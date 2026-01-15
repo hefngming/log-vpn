@@ -141,3 +141,37 @@ export const trafficLogs = mysqlTable("trafficLogs", {
 
 export type TrafficLog = typeof trafficLogs.$inferSelect;
 export type InsertTrafficLog = typeof trafficLogs.$inferInsert;
+
+
+/**
+ * Email verification codes table
+ * Used for password reset and security verification
+ * Codes expire after 10 minutes and have rate limiting (1 per minute)
+ */
+export const verificationCodes = mysqlTable("verificationCodes", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull(),
+  code: varchar("code", { length: 6 }).notNull(),
+  type: mysqlEnum("type", ["password_reset", "change_password", "register"]).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  used: boolean("used").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type VerificationCode = typeof verificationCodes.$inferSelect;
+export type InsertVerificationCode = typeof verificationCodes.$inferInsert;
+
+/**
+ * User passwords table (separate from OAuth users)
+ * For users who register with email/password
+ */
+export const userPasswords = mysqlTable("userPasswords", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type UserPassword = typeof userPasswords.$inferSelect;
+export type InsertUserPassword = typeof userPasswords.$inferInsert;

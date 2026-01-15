@@ -8,7 +8,9 @@ import {
   plans, InsertPlan,
   paymentConfigs,
   systemSettings,
-  trafficLogs, InsertTrafficLog
+  trafficLogs, InsertTrafficLog,
+  verificationCodes, InsertVerificationCode,
+  userPasswords, InsertUserPassword
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { nanoid } from 'nanoid';
@@ -399,4 +401,137 @@ export async function getAdminStats() {
     totalNodes: nodeCount?.count || 0,
     todayRevenue: revenue?.total || 0,
   };
+}
+
+
+// ==================== Verification Code Functions ====================
+
+/**
+ * Create a verification code
+ * Rate limited: only one code per email per minute
+ */
+export async function createVerificationCode(
+  email: string, 
+  code: string, 
+  type: 'password_reset' | 'change_password' | 'register'
+): Promise<{ success: boolean; error?: string }> {
+  const db = await getDb();
+  if (!db) return { success: false, error: "Database not available" };
+  
+  // Check rate limit (1 per minute)
+  const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+  const recentCodes = await db.select()
+    .from(verificationCodes)
+    .where(and(
+      eq(verificationCodes.email, email),
+      eq(verificationCodes.type, type),
+      gte(verificationCodes.createdAt, oneMinuteAgo)
+    ));
+  
+  if (recentCodes.length > 0) {
+    return { success: false, error: "请等待 1 分钟后再获取验证码" };
+  }
+  
+  // Set expiry to 10 minutes from now
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  
+  await db.insert(verificationCodes).values({
+    email,
+    code,
+    type,
+    expiresAt,
+  });
+  
+  return { success: true };
+}
+
+/**
+ * Verify a code
+ * Returns true if valid, false otherwise
+ */
+export async function verifyCode(
+  email: string, 
+  code: string, 
+  type: 'password_reset' | 'change_password' | 'register'
+): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  
+  const now = new Date();
+  const result = await db.select()
+    .from(verificationCodes)
+    .where(and(
+      eq(verificationCodes.email, email),
+      eq(verificationCodes.code, code),
+      eq(verificationCodes.type, type),
+      eq(verificationCodes.used, false),
+      gte(verificationCodes.expiresAt, now)
+    ))
+    .limit(1);
+  
+  if (result.length === 0) return false;
+  
+  // Mark code as used
+  await db.update(verificationCodes)
+    .set({ used: true })
+    .where(eq(verificationCodes.id, result[0].id));
+  
+  return true;
+}
+
+// ==================== User Password Functions ====================
+
+/**
+ * Set or update user password
+ */
+export async function setUserPassword(userId: number, passwordHash: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.insert(userPasswords)
+    .values({ userId, passwordHash })
+    .onDuplicateKeyUpdate({ set: { passwordHash } });
+}
+
+/**
+ * Get user password hash
+ */
+export async function getUserPasswordHash(userId: number): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select()
+    .from(userPasswords)
+    .where(eq(userPasswords.userId, userId))
+    .limit(1);
+  
+  return result.length > 0 ? result[0].passwordHash : null;
+}
+
+/**
+ * Get user by email
+ */
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+  
+  return result.length > 0 ? result[0] : undefined;
+}
+
+/**
+ * Search users by email or name
+ */
+export async function searchUsers(query: string) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select()
+    .from(users)
+    .where(sql`${users.email} LIKE ${`%${query}%`} OR ${users.name} LIKE ${`%${query}%`}`)
+    .limit(50);
 }

@@ -1,12 +1,18 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Check, QrCode, MessageCircle, ArrowLeft } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Shield, Check, QrCode, MessageCircle, ArrowLeft, Download, Copy, X } from "lucide-react";
 import { Link } from "wouter";
 import { getLoginUrl } from "@/const";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function Recharge() {
   const { isAuthenticated, loading } = useAuth();
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<typeof plans[0] | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'wechat' | 'alipay'>('wechat');
 
   if (loading) {
     return (
@@ -46,6 +52,35 @@ export default function Recharge() {
       features: ["专属高速节点", "无限流量", "7x24 专属客服", "API 接入"],
     },
   ];
+
+  const handleSelectPlan = (plan: typeof plans[0]) => {
+    setSelectedPlan(plan);
+    setShowPaymentDialog(true);
+  };
+
+  const handleSaveQrcode = () => {
+    // 在移动端提示用户长按保存
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      toast.info("请长按图片保存到相册", { duration: 3000 });
+    } else {
+      // 桌面端直接下载
+      const link = document.createElement('a');
+      link.href = paymentMethod === 'wechat' ? '/images/wechat-pay.jpg' : '/images/alipay.jpg';
+      link.download = `${paymentMethod === 'wechat' ? '微信' : '支付宝'}收款码.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("收款码已保存");
+    }
+  };
+
+  const handleCopyAmount = () => {
+    if (selectedPlan) {
+      navigator.clipboard.writeText(selectedPlan.price.toString());
+      toast.success("金额已复制");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -132,101 +167,187 @@ export default function Recharge() {
                         : "border-primary text-primary hover:bg-primary/10"
                     }`}
                     variant={plan.recommended ? "default" : "outline"}
-                    onClick={() => {
-                      const paymentSection = document.getElementById("payment-section");
-                      paymentSection?.scrollIntoView({ behavior: "smooth" });
-                    }}
+                    onClick={() => handleSelectPlan(plan)}
                   >
-                    选择套餐
+                    立即购买
                   </Button>
                 </CardContent>
               </Card>
             ))}
           </div>
 
-          {/* Payment Section */}
-          <div id="payment-section" className="max-w-2xl mx-auto">
+          {/* FAQ Section */}
+          <div className="max-w-2xl mx-auto">
             <Card className="bg-card border-border">
               <CardHeader>
-                <CardTitle className="text-foreground flex items-center gap-2">
-                  <QrCode className="w-5 h-5 text-primary" />
-                  支付方式
-                </CardTitle>
+                <CardTitle className="text-foreground">常见问题</CardTitle>
               </CardHeader>
-              <CardContent>
-                {/* QR Code Placeholder */}
-                <div className="text-center mb-6">
-                  <div className="w-64 h-64 mx-auto bg-white rounded-lg p-4 mb-4">
-                    {/* Placeholder QR Code */}
-                    <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 rounded flex items-center justify-center">
-                      <div className="text-center">
-                        <QrCode className="w-16 h-16 text-gray-400 mx-auto mb-2" />
-                        <p className="text-sm text-gray-500">收款码占位</p>
-                        <p className="text-xs text-gray-400">请联系客服获取</p>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-lg font-bold text-foreground mb-2">
-                    请扫码支付 ¥199 元
-                  </p>
-                  <p className="text-muted-foreground text-sm">
-                    支付完成后，请联系客服或上传截图激活账户
+              <CardContent className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-foreground mb-1">如何激活订阅？</h4>
+                  <p className="text-sm text-muted-foreground">
+                    选择套餐后扫码支付，支付完成后联系客服发送截图即可激活。
                   </p>
                 </div>
-
-                {/* Instructions */}
-                <div className="bg-secondary/50 rounded-lg p-4 mb-6">
-                  <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
-                    <MessageCircle className="w-4 h-4 text-primary" />
-                    支付说明
-                  </h4>
-                  <ol className="text-sm text-muted-foreground space-y-2">
-                    <li>1. 使用微信或支付宝扫描上方二维码</li>
-                    <li>2. 支付对应套餐金额</li>
-                    <li>3. 支付完成后截图保存</li>
-                    <li>4. 联系客服并发送支付截图</li>
-                    <li>5. 客服确认后将为您开通服务</li>
-                  </ol>
-                </div>
-
-                {/* Contact */}
-                <div className="text-center">
-                  <p className="text-muted-foreground mb-4">
-                    客服联系方式：
+                <div>
+                  <h4 className="font-medium text-foreground mb-1">支持哪些支付方式？</h4>
+                  <p className="text-sm text-muted-foreground">
+                    目前支持微信支付和支付宝，后续将开通更多支付方式。
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <Button variant="outline" className="border-primary text-primary">
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      微信客服
-                    </Button>
-                    <Button variant="outline" className="border-primary text-primary">
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Telegram
-                    </Button>
-                  </div>
                 </div>
-
-                {/* Epay Integration Notice - Hidden, for future use */}
-                {/* 
-                  TODO: 易支付接口预留位置
-                  当获得易支付 PID 和 KEY 后，在此处集成自动支付功能
-                  
-                  配置项:
-                  - EPAY_PID: 商户ID
-                  - EPAY_KEY: 商户密钥
-                  - EPAY_API_URL: 易支付接口地址
-                  
-                  接口调用示例:
-                  const createOrder = async (planId: number) => {
-                    const response = await trpc.payment.createOrder.mutate({ planId });
-                    window.location.href = response.paymentUrl;
-                  };
-                */}
+                <div>
+                  <h4 className="font-medium text-foreground mb-1">订阅可以退款吗？</h4>
+                  <p className="text-sm text-muted-foreground">
+                    购买后 7 天内未使用可申请全额退款，请联系客服处理。
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
+
+      {/* Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="bg-card border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-primary" />
+                扫码支付
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Plan Info */}
+            {selectedPlan && (
+              <div className="bg-secondary/50 rounded-lg p-4 text-center">
+                <p className="text-muted-foreground mb-1">{selectedPlan.name}</p>
+                <p className="text-3xl font-bold text-foreground">
+                  ¥{selectedPlan.price}
+                  <span className="text-sm font-normal text-muted-foreground ml-1">
+                    / {selectedPlan.duration}天
+                  </span>
+                </p>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="mt-2 text-primary"
+                  onClick={handleCopyAmount}
+                >
+                  <Copy className="w-3 h-3 mr-1" />
+                  复制金额
+                </Button>
+              </div>
+            )}
+
+            {/* Payment Method Tabs */}
+            <div className="flex gap-2">
+              <Button
+                variant={paymentMethod === 'wechat' ? 'default' : 'outline'}
+                className={`flex-1 ${paymentMethod === 'wechat' ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                onClick={() => setPaymentMethod('wechat')}
+              >
+                微信支付
+              </Button>
+              <Button
+                variant={paymentMethod === 'alipay' ? 'default' : 'outline'}
+                className={`flex-1 ${paymentMethod === 'alipay' ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                onClick={() => setPaymentMethod('alipay')}
+              >
+                支付宝
+              </Button>
+            </div>
+
+            {/* QR Code */}
+            <div className="text-center">
+              <div className="w-56 h-56 mx-auto bg-white rounded-lg p-2 mb-4">
+                <img 
+                  src={paymentMethod === 'wechat' ? '/images/wechat-pay.jpg' : '/images/alipay.jpg'}
+                  alt={paymentMethod === 'wechat' ? '微信收款码' : '支付宝收款码'}
+                  className="w-full h-full object-contain rounded"
+                />
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-primary text-primary"
+                onClick={handleSaveQrcode}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                保存收款码
+              </Button>
+            </div>
+
+            {/* Important Notice */}
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+              <p className="text-yellow-500 font-medium text-sm mb-2">⚠️ 重要提示</p>
+              <p className="text-sm text-muted-foreground">
+                支付完成后，请务必<span className="text-foreground font-medium">保留支付截图</span>并联系客服进行手动激活。
+              </p>
+            </div>
+
+            {/* Instructions */}
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p className="flex items-start gap-2">
+                <span className="text-primary font-medium">1.</span>
+                使用{paymentMethod === 'wechat' ? '微信' : '支付宝'}扫描上方二维码
+              </p>
+              <p className="flex items-start gap-2">
+                <span className="text-primary font-medium">2.</span>
+                支付 ¥{selectedPlan?.price} 元
+              </p>
+              <p className="flex items-start gap-2">
+                <span className="text-primary font-medium">3.</span>
+                截图保存支付凭证
+              </p>
+              <p className="flex items-start gap-2">
+                <span className="text-primary font-medium">4.</span>
+                联系客服发送截图激活账户
+              </p>
+            </div>
+
+            {/* Contact Buttons */}
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1 border-green-500 text-green-500 hover:bg-green-500/10">
+                <MessageCircle className="w-4 h-4 mr-2" />
+                微信客服
+              </Button>
+              <Button variant="outline" className="flex-1 border-blue-500 text-blue-500 hover:bg-blue-500/10">
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Telegram
+              </Button>
+            </div>
+          </div>
+
+          {/* 
+            ============================================================
+            【易支付接口预留位置】
+            ============================================================
+            
+            当获得易支付 PID 和 KEY 后，修改以下配置文件启用自动支付：
+            
+            1. 服务端配置文件: server/payment.ts
+               - 在 PaymentService 中配置易支付参数
+               - 将 activeProvider 切换为 EpayProvider
+            
+            2. 数据库配置:
+               INSERT INTO paymentConfigs (name, provider, config, isActive) VALUES 
+               ('易支付', 'epay', '{"pid":"YOUR_PID","key":"YOUR_KEY","apiUrl":"https://pay.example.com"}', true);
+            
+            3. 前端调用示例:
+               const handleAutoPay = async () => {
+                 const result = await trpc.payment.create.mutate({ planId: selectedPlan.id });
+                 if (result.payUrl) {
+                   window.location.href = result.payUrl;
+                 }
+               };
+            
+            ============================================================
+          */}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

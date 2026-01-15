@@ -5,6 +5,8 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import * as db from "./db";
+import { sendVerificationCode, generateVerificationCode } from "./email";
+import * as bcrypt from "bcryptjs";
 
 // Admin procedure - requires admin role
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -24,6 +26,98 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    
+    // Send verification code for password reset
+    sendResetCode: publicProcedure
+      .input(z.object({ email: z.string().email() }))
+      .mutation(async ({ input }) => {
+        const user = await db.getUserByEmail(input.email);
+        if (!user) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: '该邮箱未注册' });
+        }
+        
+        const code = generateVerificationCode();
+        const result = await db.createVerificationCode(input.email, code, 'password_reset');
+        
+        if (!result.success) {
+          throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: result.error || '请稍后再试' });
+        }
+        
+        const sent = await sendVerificationCode(input.email, code, 'password_reset');
+        if (!sent) {
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: '发送验证码失败，请稍后再试' });
+        }
+        
+        return { success: true, message: '验证码已发送到您的邮箱' };
+      }),
+    
+    // Reset password with verification code
+    resetPassword: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        code: z.string().length(6),
+        newPassword: z.string().min(6),
+      }))
+      .mutation(async ({ input }) => {
+        const valid = await db.verifyCode(input.email, input.code, 'password_reset');
+        if (!valid) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: '验证码无效或已过期' });
+        }
+        
+        const user = await db.getUserByEmail(input.email);
+        if (!user) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: '用户不存在' });
+        }
+        
+        const passwordHash = await bcrypt.hash(input.newPassword, 10);
+        await db.setUserPassword(user.id, passwordHash);
+        
+        return { success: true, message: '密码重置成功' };
+      }),
+    
+    // Send verification code for password change (authenticated)
+    sendChangePasswordCode: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        if (!ctx.user.email) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: '请先绑定邮箱' });
+        }
+        
+        const code = generateVerificationCode();
+        const result = await db.createVerificationCode(ctx.user.email, code, 'change_password');
+        
+        if (!result.success) {
+          throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: result.error || '请稍后再试' });
+        }
+        
+        const sent = await sendVerificationCode(ctx.user.email, code, 'change_password');
+        if (!sent) {
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: '发送验证码失败，请稍后再试' });
+        }
+        
+        return { success: true, message: '验证码已发送到您的邮箱' };
+      }),
+    
+    // Change password with verification code (authenticated)
+    changePassword: protectedProcedure
+      .input(z.object({
+        code: z.string().length(6),
+        newPassword: z.string().min(6),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user.email) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: '请先绑定邮箱' });
+        }
+        
+        const valid = await db.verifyCode(ctx.user.email, input.code, 'change_password');
+        if (!valid) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: '验证码无效或已过期' });
+        }
+        
+        const passwordHash = await bcrypt.hash(input.newPassword, 10);
+        await db.setUserPassword(ctx.user.id, passwordHash);
+        
+        return { success: true, message: '密码修改成功' };
+      }),
   }),
 
   // User subscription and profile

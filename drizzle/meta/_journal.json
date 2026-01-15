@@ -15,6 +15,13 @@
       "when": 1768452725948,
       "tag": "0001_happy_caretaker",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1768454416341,
+      "tag": "0002_conscious_black_widow",
+      "breakpoints": true
     }
   ]
 }
