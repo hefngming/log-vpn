@@ -14,6 +14,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminNodes from "./pages/admin/AdminNodes";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminReview from "./pages/admin/AdminReview";
 
 function Router() {
   return (
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/admin/orders" component={AdminOrders} />
       <Route path="/admin/nodes" component={AdminNodes} />
       <Route path="/admin/settings" component={AdminSettings} />
+      <Route path="/admin/review" component={AdminReview} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

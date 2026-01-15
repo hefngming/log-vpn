@@ -10,7 +10,8 @@ import {
   systemSettings,
   trafficLogs, InsertTrafficLog,
   verificationCodes, InsertVerificationCode,
-  userPasswords, InsertUserPassword
+  userPasswords, InsertUserPassword,
+  paymentProofs, InsertPaymentProof
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { nanoid } from 'nanoid';
@@ -534,4 +535,93 @@ export async function searchUsers(query: string) {
     .from(users)
     .where(sql`${users.email} LIKE ${`%${query}%`} OR ${users.name} LIKE ${`%${query}%`}`)
     .limit(50);
+}
+
+
+// ==================== Payment Proof Functions ====================
+
+/**
+ * Create a payment proof record
+ */
+export async function createPaymentProof(data: InsertPaymentProof): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(paymentProofs).values(data);
+  return Number(result[0].insertId);
+}
+
+/**
+ * Get all pending payment proofs for admin review
+ */
+export async function getPendingPaymentProofs() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select()
+    .from(paymentProofs)
+    .where(eq(paymentProofs.status, 'pending'))
+    .orderBy(desc(paymentProofs.createdAt));
+}
+
+/**
+ * Get all payment proofs (for admin)
+ */
+export async function getAllPaymentProofs() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select()
+    .from(paymentProofs)
+    .orderBy(desc(paymentProofs.createdAt));
+}
+
+/**
+ * Get payment proof by ID
+ */
+export async function getPaymentProofById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select()
+    .from(paymentProofs)
+    .where(eq(paymentProofs.id, id))
+    .limit(1);
+  
+  return result.length > 0 ? result[0] : undefined;
+}
+
+/**
+ * Update payment proof status (approve/reject)
+ */
+export async function updatePaymentProofStatus(
+  id: number, 
+  status: 'approved' | 'rejected', 
+  adminId: number,
+  adminNote?: string
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.update(paymentProofs)
+    .set({ 
+      status, 
+      reviewedBy: adminId, 
+      reviewedAt: new Date(),
+      adminNote: adminNote || null
+    })
+    .where(eq(paymentProofs.id, id));
+}
+
+/**
+ * Get user's payment proofs
+ */
+export async function getUserPaymentProofs(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select()
+    .from(paymentProofs)
+    .where(eq(paymentProofs.userId, userId))
+    .orderBy(desc(paymentProofs.createdAt));
 }

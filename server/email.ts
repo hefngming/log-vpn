@@ -177,3 +177,91 @@ export async function sendExpiryReminder(
 export function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
+
+
+/**
+ * Send subscription activated confirmation email
+ */
+export async function sendSubscriptionActivatedEmail(
+  to: string,
+  planName: string,
+  days: number
+): Promise<boolean> {
+  const expiryDate = new Date();
+  expiryDate.setDate(expiryDate.getDate() + days);
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0f; color: #ffffff; padding: 40px; }
+        .container { max-width: 500px; margin: 0 auto; background: #12121a; border-radius: 16px; padding: 40px; }
+        .logo { text-align: center; margin-bottom: 30px; }
+        .logo h1 { color: #8b5cf6; margin: 0; font-size: 28px; }
+        .content { text-align: center; }
+        .success { font-size: 48px; margin: 20px 0; }
+        .plan { font-size: 24px; font-weight: bold; color: #8b5cf6; margin: 20px 0; }
+        .message { color: #a0a0b0; line-height: 1.6; }
+        .info-box { background: #1a1a25; border-radius: 12px; padding: 20px; margin: 20px 0; text-align: left; }
+        .info-row { display: flex; justify-content: space-between; margin: 10px 0; }
+        .info-label { color: #6b6b7b; }
+        .info-value { color: #ffffff; font-weight: 600; }
+        .button { display: inline-block; background: linear-gradient(135deg, #8b5cf6, #a855f7); color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 20px; }
+        .telegram { margin-top: 20px; padding: 15px; background: #1a1a25; border-radius: 8px; }
+        .telegram a { color: #8b5cf6; text-decoration: none; }
+        .footer { text-align: center; margin-top: 30px; color: #6b6b7b; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="logo">
+          <h1>🛡️ Log VPN</h1>
+        </div>
+        <div class="content">
+          <div class="success">🎉</div>
+          <p class="message">恭喜！您的订阅已成功激活</p>
+          <div class="plan">${planName}</div>
+          <div class="info-box">
+            <div class="info-row">
+              <span class="info-label">套餐名称</span>
+              <span class="info-value">${planName}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">有效期</span>
+              <span class="info-value">${days} 天</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">到期时间</span>
+              <span class="info-value">${expiryDate.toLocaleDateString('zh-CN')}</span>
+            </div>
+          </div>
+          <a href="https://dj.siumingho.dpdns.org/dashboard" class="button">进入控制台</a>
+          <div class="telegram">
+            <p class="message">📱 添加客服 Telegram 获取最新动态：<a href="https://t.me/siumingh">@siumingh</a></p>
+          </div>
+        </div>
+        <div class="footer">
+          <p>© 2024 Log VPN. 安全、快速、全球。</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    const transport = getTransporter();
+    await transport.sendMail({
+      from: `"Log VPN" <${SMTP_CONFIG.auth.user}>`,
+      to,
+      subject: `Log VPN - 您的 ${planName} 订阅已激活`,
+      html: htmlContent,
+    });
+    console.log(`[Email] Subscription activated email sent to ${to}`);
+    return true;
+  } catch (error) {
+    console.error('[Email] Failed to send subscription activated email:', error);
+    return false;
+  }
+}

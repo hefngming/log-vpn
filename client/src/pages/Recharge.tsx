@@ -2,17 +2,34 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Shield, Check, QrCode, MessageCircle, ArrowLeft, Download, Copy, X } from "lucide-react";
+import { Shield, Check, QrCode, MessageCircle, ArrowLeft, Download, Copy, Upload, Image, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { getLoginUrl } from "@/const";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 
 export default function Recharge() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<typeof plans[0] | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'wechat' | 'alipay'>('wechat');
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadProofMutation = trpc.paymentProof.upload.useMutation({
+    onSuccess: () => {
+      setShowPaymentDialog(false);
+      setShowSuccessDialog(true);
+      setUploadedImage(null);
+    },
+    onError: (error) => {
+      toast.error(`提交失败: ${error.message}`);
+      setIsUploading(false);
+    },
+  });
 
   if (loading) {
     return (
@@ -54,17 +71,20 @@ export default function Recharge() {
   ];
 
   const handleSelectPlan = (plan: typeof plans[0]) => {
+    if (!isAuthenticated) {
+      window.location.href = getLoginUrl();
+      return;
+    }
     setSelectedPlan(plan);
+    setUploadedImage(null);
     setShowPaymentDialog(true);
   };
 
   const handleSaveQrcode = () => {
-    // 在移动端提示用户长按保存
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (isMobile) {
       toast.info("请长按图片保存到相册", { duration: 3000 });
     } else {
-      // 桌面端直接下载
       const link = document.createElement('a');
       link.href = paymentMethod === 'wechat' ? '/images/wechat-pay.jpg' : '/images/alipay.jpg';
       link.download = `${paymentMethod === 'wechat' ? '微信' : '支付宝'}收款码.jpg`;
@@ -80,6 +100,47 @@ export default function Recharge() {
       navigator.clipboard.writeText(selectedPlan.price.toString());
       toast.success("金额已复制");
     }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error("请选择图片文件");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("图片大小不能超过 5MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setUploadedImage(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmitProof = async () => {
+    if (!uploadedImage || !selectedPlan) {
+      toast.error("请先上传支付凭证");
+      return;
+    }
+
+    setIsUploading(true);
+    
+    // Extract base64 data from data URL
+    const base64Data = uploadedImage.split(',')[1];
+    const imageType = uploadedImage.split(';')[0].split(':')[1];
+
+    uploadProofMutation.mutate({
+      planName: selectedPlan.name,
+      amount: selectedPlan.price.toString(),
+      imageBase64: base64Data,
+      imageType: imageType,
+    });
   };
 
   return (
@@ -176,6 +237,28 @@ export default function Recharge() {
             ))}
           </div>
 
+          {/* Customer Service Info */}
+          <div className="max-w-2xl mx-auto mb-8">
+            <Card className="bg-card border-border">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <MessageCircle className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-foreground">客服 Telegram</h4>
+                    <p className="text-muted-foreground">
+                      <a href="https://t.me/siumingh" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                        @siumingh
+                      </a>
+                      <span className="text-sm ml-2">(请在激活连接后添加获取最新动态)</span>
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* FAQ Section */}
           <div className="max-w-2xl mx-auto">
             <Card className="bg-card border-border">
@@ -186,7 +269,7 @@ export default function Recharge() {
                 <div>
                   <h4 className="font-medium text-foreground mb-1">如何激活订阅？</h4>
                   <p className="text-sm text-muted-foreground">
-                    选择套餐后扫码支付，支付完成后联系客服发送截图即可激活。
+                    选择套餐后扫码支付，然后上传支付截图提交凭证，管理员审核后即可激活。
                   </p>
                 </div>
                 <div>
@@ -209,13 +292,11 @@ export default function Recharge() {
 
       {/* Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="bg-card border-border max-w-md">
+        <DialogContent className="bg-card border-border max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-foreground flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <QrCode className="w-5 h-5 text-primary" />
-                扫码支付
-              </span>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <QrCode className="w-5 h-5 text-primary" />
+              扫码支付
             </DialogTitle>
           </DialogHeader>
           
@@ -262,7 +343,7 @@ export default function Recharge() {
 
             {/* QR Code */}
             <div className="text-center">
-              <div className="w-56 h-56 mx-auto bg-white rounded-lg p-2 mb-4">
+              <div className="w-48 h-48 mx-auto bg-white rounded-lg p-2 mb-4">
                 <img 
                   src={paymentMethod === 'wechat' ? '/images/wechat-pay.jpg' : '/images/alipay.jpg'}
                   alt={paymentMethod === 'wechat' ? '微信收款码' : '支付宝收款码'}
@@ -280,72 +361,106 @@ export default function Recharge() {
               </Button>
             </div>
 
+            {/* Upload Payment Proof */}
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-foreground">上传支付凭证</p>
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              
+              {uploadedImage ? (
+                <div className="relative">
+                  <img 
+                    src={uploadedImage} 
+                    alt="支付凭证" 
+                    className="w-full h-40 object-contain bg-secondary rounded-lg"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="absolute top-2 right-2"
+                    onClick={() => setUploadedImage(null)}
+                  >
+                    重新选择
+                  </Button>
+                </div>
+              ) : (
+                <div
+                  className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">点击上传支付截图</p>
+                  <p className="text-xs text-muted-foreground mt-1">支持 JPG、PNG，最大 5MB</p>
+                </div>
+              )}
+            </div>
+
             {/* Important Notice */}
             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
               <p className="text-yellow-500 font-medium text-sm mb-2">⚠️ 重要提示</p>
               <p className="text-sm text-muted-foreground">
-                支付完成后，请务必<span className="text-foreground font-medium">保留支付截图</span>并联系客服进行手动激活。
+                支付完成后，请上传支付截图并点击"提交凭证"。管理员审核通过后将自动激活您的订阅。
               </p>
             </div>
 
-            {/* Instructions */}
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p className="flex items-start gap-2">
-                <span className="text-primary font-medium">1.</span>
-                使用{paymentMethod === 'wechat' ? '微信' : '支付宝'}扫描上方二维码
-              </p>
-              <p className="flex items-start gap-2">
-                <span className="text-primary font-medium">2.</span>
-                支付 ¥{selectedPlan?.price} 元
-              </p>
-              <p className="flex items-start gap-2">
-                <span className="text-primary font-medium">3.</span>
-                截图保存支付凭证
-              </p>
-              <p className="flex items-start gap-2">
-                <span className="text-primary font-medium">4.</span>
-                联系客服发送截图激活账户
-              </p>
-            </div>
+            {/* Submit Button */}
+            <Button
+              className="w-full gradient-primary text-white border-0"
+              disabled={!uploadedImage || isUploading}
+              onClick={handleSubmitProof}
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  提交中...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  提交凭证
+                </>
+              )}
+            </Button>
 
-            {/* Contact Buttons */}
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1 border-green-500 text-green-500 hover:bg-green-500/10">
-                <MessageCircle className="w-4 h-4 mr-2" />
-                微信客服
-              </Button>
-              <Button variant="outline" className="flex-1 border-blue-500 text-blue-500 hover:bg-blue-500/10">
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Telegram
+            {/* Telegram Contact */}
+            <div className="text-center text-sm text-muted-foreground">
+              <p>如有问题请联系客服 Telegram: <a href="https://t.me/siumingh" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">@siumingh</a></p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="bg-card border-border max-w-sm text-center">
+          <div className="py-6">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/10 flex items-center justify-center">
+              <Check className="w-8 h-8 text-green-500" />
+            </div>
+            <h3 className="text-xl font-bold text-foreground mb-2">凭证提交成功</h3>
+            <p className="text-muted-foreground mb-6">
+              您的支付凭证已提交，请等待管理员审核。审核通过后将通过邮件通知您。
+            </p>
+            <div className="space-y-3">
+              <Link href="/dashboard">
+                <Button className="w-full gradient-primary text-white border-0">
+                  返回控制台
+                </Button>
+              </Link>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => setShowSuccessDialog(false)}
+              >
+                继续浏览
               </Button>
             </div>
           </div>
-
-          {/* 
-            ============================================================
-            【易支付接口预留位置】
-            ============================================================
-            
-            当获得易支付 PID 和 KEY 后，修改以下配置文件启用自动支付：
-            
-            1. 服务端配置文件: server/payment.ts
-               - 在 PaymentService 中配置易支付参数
-               - 将 activeProvider 切换为 EpayProvider
-            
-            2. 数据库配置:
-               INSERT INTO paymentConfigs (name, provider, config, isActive) VALUES 
-               ('易支付', 'epay', '{"pid":"YOUR_PID","key":"YOUR_KEY","apiUrl":"https://pay.example.com"}', true);
-            
-            3. 前端调用示例:
-               const handleAutoPay = async () => {
-                 const result = await trpc.payment.create.mutate({ planId: selectedPlan.id });
-                 if (result.payUrl) {
-                   window.location.href = result.payUrl;
-                 }
-               };
-            
-            ============================================================
-          */}
         </DialogContent>
       </Dialog>
     </div>

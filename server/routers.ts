@@ -7,6 +7,9 @@ import { TRPCError } from "@trpc/server";
 import * as db from "./db";
 import { sendVerificationCode, generateVerificationCode } from "./email";
 import * as bcrypt from "bcryptjs";
+import { storagePut } from "./storage";
+import { notifyNewPaymentProof } from "./telegram";
+import { sendSubscriptionActivatedEmail } from "./email";
 
 // Admin procedure - requires admin role
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -273,6 +276,47 @@ export const appRouter = router({
       }),
   }),
 
+  // Payment proofs - user can upload payment screenshots
+  paymentProof: router({
+    upload: protectedProcedure
+      .input(z.object({
+        planName: z.string(),
+        amount: z.string(),
+        imageBase64: z.string(), // Base64 encoded image
+        imageType: z.string().default('image/jpeg'),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Upload image to S3
+        const buffer = Buffer.from(input.imageBase64, 'base64');
+        const fileKey = `payment-proofs/${ctx.user.id}-${Date.now()}.jpg`;
+        const { url } = await storagePut(fileKey, buffer, input.imageType);
+        
+        // Create payment proof record
+        const proofId = await db.createPaymentProof({
+          userId: ctx.user.id,
+          userEmail: ctx.user.email || undefined,
+          planName: input.planName,
+          amount: input.amount,
+          imageUrl: url,
+          status: 'pending',
+        });
+        
+        // Send Telegram notification to admin
+        await notifyNewPaymentProof(
+          ctx.user.email || ctx.user.name || `User #${ctx.user.id}`,
+          input.planName,
+          input.amount
+        );
+        
+        return { success: true, proofId };
+      }),
+    
+    // Get user's own payment proofs
+    myProofs: protectedProcedure.query(async ({ ctx }) => {
+      return await db.getUserPaymentProofs(ctx.user.id);
+    }),
+  }),
+
   // Admin functions
   admin: router({
     getStats: adminProcedure.query(async () => {
@@ -292,6 +336,65 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         await db.activateSubscription(input.userId, input.planName, input.days, input.trafficLimit);
+        return { success: true };
+      }),
+    
+    // Get pending payment proofs for review
+    getPendingProofs: adminProcedure.query(async () => {
+      return await db.getPendingPaymentProofs();
+    }),
+    
+    // Get all payment proofs
+    getAllProofs: adminProcedure.query(async () => {
+      return await db.getAllPaymentProofs();
+    }),
+    
+    // Approve payment proof and activate subscription
+    approveProof: adminProcedure
+      .input(z.object({
+        proofId: z.number(),
+        days: z.number().default(30),
+        trafficLimit: z.number().default(1073741824 * 200), // 200GB default
+        adminNote: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const proof = await db.getPaymentProofById(input.proofId);
+        if (!proof) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: '凭证不存在' });
+        }
+        
+        if (proof.status !== 'pending') {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: '该凭证已处理' });
+        }
+        
+        // Update proof status
+        await db.updatePaymentProofStatus(input.proofId, 'approved', ctx.user.id, input.adminNote);
+        
+        // Activate user subscription
+        await db.activateSubscription(proof.userId, proof.planName, input.days, input.trafficLimit);
+        
+        // Send confirmation email if user has email
+        if (proof.userEmail) {
+          await sendSubscriptionActivatedEmail(proof.userEmail, proof.planName, input.days);
+        }
+        
+        return { success: true };
+      }),
+    
+    // Reject payment proof
+    rejectProof: adminProcedure
+      .input(z.object({
+        proofId: z.number(),
+        adminNote: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const proof = await db.getPaymentProofById(input.proofId);
+        if (!proof) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: '凭证不存在' });
+        }
+        
+        await db.updatePaymentProofStatus(input.proofId, 'rejected', ctx.user.id, input.adminNote);
+        
         return { success: true };
       }),
   }),

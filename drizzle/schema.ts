@@ -175,3 +175,26 @@ export const userPasswords = mysqlTable("userPasswords", {
 
 export type UserPassword = typeof userPasswords.$inferSelect;
 export type InsertUserPassword = typeof userPasswords.$inferInsert;
+
+
+/**
+ * Payment proofs table - stores user uploaded payment screenshots
+ * Used for manual payment verification workflow
+ */
+export const paymentProofs = mysqlTable("paymentProofs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  userEmail: varchar("userEmail", { length: 320 }),
+  planName: varchar("planName", { length: 100 }).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  imageUrl: text("imageUrl").notNull(), // S3 URL of the uploaded screenshot
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  adminNote: text("adminNote"), // Admin can add notes when reviewing
+  reviewedAt: timestamp("reviewedAt"),
+  reviewedBy: int("reviewedBy"), // Admin user ID who reviewed
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PaymentProof = typeof paymentProofs.$inferSelect;
+export type InsertPaymentProof = typeof paymentProofs.$inferInsert;
