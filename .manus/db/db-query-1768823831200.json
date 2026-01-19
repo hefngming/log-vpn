@@ -1,0 +1,9 @@
+{
+  "query": "DELETE FROM plans;\nINSERT INTO plans (name, description, price, duration, trafficLimit, isActive, sortOrder) VALUES \n('免费版', '体验版本，每台设备仅一次', 0, 1, 1073741824, true, 1),\n('无限尊享版', '200GB月流量，10GB日流量限制', 199, 30, 214748364800, true, 2);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2niMBJFQbqWKXSJ.root --database ik4QKwpUJXHkdpgpXC9yL3 --execute DELETE FROM plans;\nINSERT INTO plans (name, description, price, duration, trafficLimit, isActive, sortOrder) VALUES \n('免费版', '体验版本，每台设备仅一次', 0, 1, 1073741824, true, 1),\n('无限尊享版', '200GB月流量，10GB日流量限制', 199, 30, 214748364800, true, 2);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 71
+}

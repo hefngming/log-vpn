@@ -42,31 +42,24 @@ export default function Recharge() {
   const plans = [
     {
       id: 1,
-      name: "基础版",
-      price: 29,
-      duration: 30,
-      traffic: "50GB",
-      devices: 3,
-      features: ["基础节点", "标准速度", "邮件支持"],
+      name: "免费版",
+      price: 0,
+      duration: 1,
+      traffic: "1GB",
+      devices: 1,
+      features: ["体验版本", "1天有效期", "每台设备仅一次", "标准节点"],
+      isFree: true,
     },
     {
       id: 2,
-      name: "专业版",
-      price: 59,
-      duration: 30,
-      traffic: "200GB",
-      devices: 5,
-      features: ["全部节点", "高速连接", "优先客服", "多设备支持"],
-      recommended: true,
-    },
-    {
-      id: 3,
-      name: "企业版",
+      name: "无限尊享版",
       price: 199,
       duration: 30,
-      traffic: "无限",
+      traffic: "200GB/月",
+      dailyLimit: "10GB/天",
       devices: 10,
-      features: ["专属高速节点", "无限流量", "7x24 专属客服", "API 接入"],
+      features: ["200GB 月流量", "10GB 日流量限制", "全部高速节点", "7x24 专属客服", "10 个设备同时在线"],
+      recommended: true,
     },
   ];
 
@@ -75,6 +68,13 @@ export default function Recharge() {
       window.location.href = getLoginUrl();
       return;
     }
+    
+    // 免费版直接激活
+    if (plan.isFree) {
+      toast.success("免费版已激活！您可以体验 1 天，1GB 流量");
+      return;
+    }
+    
     setSelectedPlan(plan);
     setUploadedImage(null);
     setShowPaymentDialog(true);
@@ -156,22 +156,12 @@ export default function Recharge() {
               <span className="text-xl font-bold text-foreground">Log VPN</span>
             </div>
           </Link>
-          <div className="flex items-center gap-4">
-            {isAuthenticated ? (
-              <Link href="/dashboard">
-                <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  返回控制台
-                </Button>
-              </Link>
-            ) : (
-              <a href={getLoginUrl()}>
-                <Button className="gradient-primary text-white border-0">
-                  登录 / 注册
-                </Button>
-              </a>
-            )}
-          </div>
+          <Link href="/dashboard">
+            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              返回控制台
+            </Button>
+          </Link>
         </div>
       </nav>
 
@@ -179,181 +169,180 @@ export default function Recharge() {
         <div className="container">
           {/* Header */}
           <div className="text-center mb-12">
-            <h1 className="text-3xl font-bold text-foreground mb-2">选择您的套餐</h1>
-            <p className="text-muted-foreground">灵活的套餐选择，满足您的不同需求</p>
+            <h1 className="text-4xl font-bold text-foreground mb-4">选择您的套餐</h1>
+            <p className="text-xl text-muted-foreground">
+              灵活的套餐选择，满足您的不同需求
+            </p>
           </div>
 
-          {/* Plans */}
-          <div className="grid md:grid-cols-3 gap-6 mb-12">
+          {/* Plans Grid */}
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
             {plans.map((plan) => (
               <Card
                 key={plan.id}
-                className={`bg-card border-border relative ${
-                  plan.recommended ? "border-primary" : ""
+                className={`bg-card border-border relative overflow-hidden transition-all ${
+                  plan.recommended ? 'md:scale-105 border-primary/50' : ''
                 }`}
               >
                 {plan.recommended && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-primary-foreground text-sm rounded-full">
+                  <div className="absolute top-0 right-0 bg-primary text-white px-4 py-1 text-sm font-medium">
                     推荐
                   </div>
                 )}
+                
                 <CardHeader>
-                  <CardTitle className="text-foreground">{plan.name}</CardTitle>
+                  <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                  <div className="mt-4">
+                    <div className="text-4xl font-bold text-primary">
+                      ¥{plan.price}
+                      <span className="text-lg text-muted-foreground ml-2">/月</span>
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-foreground mb-4">
-                    ¥{plan.price}
-                    <span className="text-lg font-normal text-muted-foreground">/月</span>
+
+                <CardContent className="space-y-6">
+                  {/* Plan Details */}
+                  <div className="space-y-3 border-b border-border pb-6">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">流量限制</span>
+                      <span className="font-semibold text-foreground">{plan.traffic}</span>
+                    </div>
+                    {plan.dailyLimit && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">日流量限制</span>
+                        <span className="font-semibold text-foreground">{plan.dailyLimit}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">有效期</span>
+                      <span className="font-semibold text-foreground">{plan.duration} 天</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">设备数</span>
+                      <span className="font-semibold text-foreground">{plan.devices} 个</span>
+                    </div>
                   </div>
-                  <div className="space-y-2 mb-6">
-                    <p className="text-muted-foreground">
-                      <span className="text-foreground font-medium">{plan.traffic}</span> 流量/月
-                    </p>
-                    <p className="text-muted-foreground">
-                      <span className="text-foreground font-medium">{plan.devices}</span> 个设备同时在线
-                    </p>
-                  </div>
-                  <ul className="space-y-2 mb-6">
-                    {plan.features.map((feature, index) => (
-                      <li key={index} className="flex items-center gap-2 text-muted-foreground">
-                        <Check className="w-4 h-4 text-primary" />
-                        {feature}
-                      </li>
+
+                  {/* Features */}
+                  <div className="space-y-3">
+                    {plan.features.map((feature, idx) => (
+                      <div key={idx} className="flex items-center gap-3">
+                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                        <span className="text-foreground">{feature}</span>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
+
+                  {/* Action Button */}
                   <Button
+                    onClick={() => handleSelectPlan(plan)}
                     className={`w-full ${
                       plan.recommended
-                        ? "gradient-primary text-white border-0"
-                        : "border-primary text-primary hover:bg-primary/10"
+                        ? 'gradient-primary text-white border-0'
+                        : 'border-primary text-primary'
                     }`}
-                    variant={plan.recommended ? "default" : "outline"}
-                    onClick={() => handleSelectPlan(plan)}
+                    variant={plan.recommended ? 'default' : 'outline'}
                   >
-                    立即购买
+                    {plan.isFree ? '立即体验' : '选择套餐'}
                   </Button>
                 </CardContent>
               </Card>
             ))}
           </div>
 
-          {/* Customer Service Info */}
-          <div className="max-w-2xl mx-auto mb-8">
-            <Card className="bg-card border-border">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <MessageCircle className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-foreground">客服 Telegram</h4>
-                    <p className="text-muted-foreground">
-                      <a href="https://t.me/siumingh" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                        @siumingh
-                      </a>
-                      <span className="text-sm ml-2">(请在激活连接后添加获取最新动态)</span>
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* FAQ Section */}
           <div className="max-w-2xl mx-auto">
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="text-foreground">常见问题</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium text-foreground mb-1">如何激活订阅？</h4>
-                  <p className="text-sm text-muted-foreground">
-                    选择套餐后扫码支付，然后上传支付截图提交凭证，管理员审核后即可激活。
+            <h2 className="text-2xl font-bold text-foreground mb-8 text-center">常见问题</h2>
+            <div className="space-y-4">
+              <Card className="bg-card border-border">
+                <CardContent className="p-6">
+                  <h3 className="font-semibold text-foreground mb-2">免费版有什么限制？</h3>
+                  <p className="text-muted-foreground">
+                    免费版为体验版本，每台设备仅可激活一次，有效期 1 天，流量限制 1GB。
                   </p>
-                </div>
-                <div>
-                  <h4 className="font-medium text-foreground mb-1">支持哪些支付方式？</h4>
-                  <p className="text-sm text-muted-foreground">
-                    目前支持微信支付和支付宝，后续将开通更多支付方式。
+                </CardContent>
+              </Card>
+              <Card className="bg-card border-border">
+                <CardContent className="p-6">
+                  <h3 className="font-semibold text-foreground mb-2">无限尊享版的日流量限制是什么意思？</h3>
+                  <p className="text-muted-foreground">
+                    无限尊享版每月提供 200GB 流量，同时每天限制 10GB 流量。例如，如果您在一天内用完 10GB，需要等到次日才能继续使用。
                   </p>
-                </div>
-                <div>
-                  <h4 className="font-medium text-foreground mb-1">订阅可以退款吗？</h4>
-                  <p className="text-sm text-muted-foreground">
-                    购买后 7 天内未使用可申请全额退款，请联系客服处理。
+                </CardContent>
+              </Card>
+              <Card className="bg-card border-border">
+                <CardContent className="p-6">
+                  <h3 className="font-semibold text-foreground mb-2">如何支付？</h3>
+                  <p className="text-muted-foreground">
+                    目前支持微信和支付宝转账。选择套餐后，按照页面提示扫码支付，上传支付凭证即可。我们会在 24 小时内审核并激活您的订阅。
                   </p>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="bg-card border-border max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-foreground flex items-center gap-2">
-              <QrCode className="w-5 h-5 text-primary" />
-              扫码支付
-            </DialogTitle>
+            <DialogTitle>支付 {selectedPlan?.name}</DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-6">
-            {/* Plan Info */}
-            {selectedPlan && (
-              <div className="bg-secondary/50 rounded-lg p-4 text-center">
-                <p className="text-muted-foreground mb-1">{selectedPlan.name}</p>
-                <p className="text-3xl font-bold text-foreground">
-                  ¥{selectedPlan.price}
-                  <span className="text-sm font-normal text-muted-foreground ml-1">
-                    / {selectedPlan.duration}天
-                  </span>
-                </p>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="mt-2 text-primary"
+            {/* Payment Amount */}
+            <div className="bg-card border border-border rounded-lg p-4">
+              <p className="text-sm text-muted-foreground mb-2">应付金额</p>
+              <div className="flex items-center justify-between">
+                <span className="text-3xl font-bold text-primary">¥{selectedPlan?.price}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={handleCopyAmount}
+                  className="border-primary text-primary"
                 >
-                  <Copy className="w-3 h-3 mr-1" />
-                  复制金额
+                  <Copy className="w-4 h-4 mr-2" />
+                  复制
                 </Button>
               </div>
-            )}
+            </div>
 
-            {/* Payment Method Tabs */}
-            <div className="flex gap-2">
-              <Button
-                variant={paymentMethod === 'wechat' ? 'default' : 'outline'}
-                className={`flex-1 ${paymentMethod === 'wechat' ? 'bg-green-600 hover:bg-green-700' : ''}`}
-                onClick={() => setPaymentMethod('wechat')}
-              >
-                微信支付
-              </Button>
-              <Button
-                variant={paymentMethod === 'alipay' ? 'default' : 'outline'}
-                className={`flex-1 ${paymentMethod === 'alipay' ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
-                onClick={() => setPaymentMethod('alipay')}
-              >
-                支付宝
-              </Button>
+            {/* Payment Method Selection */}
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-foreground">选择支付方式</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  variant={paymentMethod === 'wechat' ? 'default' : 'outline'}
+                  onClick={() => setPaymentMethod('wechat')}
+                  className={paymentMethod === 'wechat' ? 'gradient-primary text-white border-0' : 'border-border'}
+                >
+                  微信支付
+                </Button>
+                <Button
+                  variant={paymentMethod === 'alipay' ? 'default' : 'outline'}
+                  onClick={() => setPaymentMethod('alipay')}
+                  className={paymentMethod === 'alipay' ? 'gradient-primary text-white border-0' : 'border-border'}
+                >
+                  支付宝
+                </Button>
+              </div>
             </div>
 
             {/* QR Code */}
-            <div className="text-center">
-              <div className="w-48 h-48 mx-auto bg-white rounded-lg p-2 mb-4">
-                <img 
-                  src={paymentMethod === 'wechat' ? '/images/wechat-pay.jpg' : '/images/alipay.jpg'}
-                  alt={paymentMethod === 'wechat' ? '微信收款码' : '支付宝收款码'}
-                  className="w-full h-full object-contain rounded"
-                />
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-foreground">扫码支付</p>
+              <div className="bg-secondary rounded-lg p-4 aspect-square flex items-center justify-center">
+                <div className="text-center">
+                  <QrCode className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {paymentMethod === 'wechat' ? '微信' : '支付宝'}收款码
+                  </p>
+                </div>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="border-primary text-primary"
+              <Button
+                variant="outline"
+                className="w-full border-primary text-primary"
                 onClick={handleSaveQrcode}
               >
                 <Download className="w-4 h-4 mr-2" />
@@ -361,58 +350,40 @@ export default function Recharge() {
               </Button>
             </div>
 
-            {/* Upload Payment Proof */}
+            {/* Upload Proof */}
             <div className="space-y-3">
               <p className="text-sm font-medium text-foreground">上传支付凭证</p>
+              <div
+                className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploadedImage ? (
+                  <div className="space-y-3">
+                    <img src={uploadedImage} alt="Payment proof" className="max-h-32 mx-auto rounded" />
+                    <p className="text-sm text-muted-foreground">点击重新选择</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Image className="w-8 h-8 text-muted-foreground mx-auto" />
+                    <p className="text-sm text-foreground">点击选择图片</p>
+                    <p className="text-xs text-muted-foreground">或拖拽图片到此处</p>
+                  </div>
+                )}
+              </div>
               <input
+                ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                ref={fileInputRef}
                 onChange={handleFileSelect}
                 className="hidden"
               />
-              
-              {uploadedImage ? (
-                <div className="relative">
-                  <img 
-                    src={uploadedImage} 
-                    alt="支付凭证" 
-                    className="w-full h-40 object-contain bg-secondary rounded-lg"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="absolute top-2 right-2"
-                    onClick={() => setUploadedImage(null)}
-                  >
-                    重新选择
-                  </Button>
-                </div>
-              ) : (
-                <div
-                  className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">点击上传支付截图</p>
-                  <p className="text-xs text-muted-foreground mt-1">支持 JPG、PNG，最大 5MB</p>
-                </div>
-              )}
-            </div>
-
-            {/* Important Notice */}
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-              <p className="text-yellow-500 font-medium text-sm mb-2">⚠️ 重要提示</p>
-              <p className="text-sm text-muted-foreground">
-                支付完成后，请上传支付截图并点击"提交凭证"。管理员审核通过后将自动激活您的订阅。
-              </p>
             </div>
 
             {/* Submit Button */}
             <Button
-              className="w-full gradient-primary text-white border-0"
-              disabled={!uploadedImage || isUploading}
               onClick={handleSubmitProof}
+              disabled={!uploadedImage || isUploading}
+              className="w-full gradient-primary text-white border-0"
             >
               {isUploading ? (
                 <>
@@ -422,14 +393,18 @@ export default function Recharge() {
               ) : (
                 <>
                   <Upload className="w-4 h-4 mr-2" />
-                  提交凭证
+                  提交支付凭证
                 </>
               )}
             </Button>
 
-            {/* Telegram Contact */}
-            <div className="text-center text-sm text-muted-foreground">
-              <p>如有问题请联系客服 Telegram: <a href="https://t.me/siumingh" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">@siumingh</a></p>
+            {/* Customer Service */}
+            <div className="bg-card border border-border rounded-lg p-4 text-center">
+              <p className="text-sm text-muted-foreground mb-2">需要帮助？</p>
+              <Button variant="ghost" className="text-primary text-sm">
+                <MessageCircle className="w-4 h-4 mr-2" />
+                联系客服
+              </Button>
             </div>
           </div>
         </DialogContent>
@@ -437,29 +412,23 @@ export default function Recharge() {
 
       {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent className="bg-card border-border max-w-sm text-center">
-          <div className="py-6">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/10 flex items-center justify-center">
-              <Check className="w-8 h-8 text-green-500" />
+        <DialogContent className="sm:max-w-md text-center">
+          <div className="space-y-4">
+            <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center mx-auto">
+              <Check className="w-6 h-6 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-foreground mb-2">凭证提交成功</h3>
-            <p className="text-muted-foreground mb-6">
-              您的支付凭证已提交，请等待管理员审核。审核通过后将通过邮件通知您。
-            </p>
-            <div className="space-y-3">
-              <Link href="/dashboard">
-                <Button className="w-full gradient-primary text-white border-0">
-                  返回控制台
-                </Button>
-              </Link>
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => setShowSuccessDialog(false)}
-              >
-                继续浏览
-              </Button>
+            <div>
+              <h2 className="text-xl font-bold text-foreground mb-2">提交成功！</h2>
+              <p className="text-muted-foreground">
+                感谢您的支付。我们会在 24 小时内审核您的支付凭证，并自动激活您的订阅。
+              </p>
             </div>
+            <Button
+              onClick={() => setShowSuccessDialog(false)}
+              className="w-full gradient-primary text-white border-0"
+            >
+              返回控制台
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
