@@ -2,16 +2,23 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Shield, Globe, Signal, ArrowLeft, Search, Copy, Check } from "lucide-react";
+import { Shield, Globe, Signal, ArrowLeft, Search, Copy, Check, RefreshCw, Download } from "lucide-react";
 import { Link } from "wouter";
 import { getLoginUrl } from "@/const";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 
 export default function Nodes() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [nodes, setNodes] = useState<any[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  
+  // tRPC mutation for syncing nodes
+  const syncNodesMutation = trpc.nodes.sync.useMutation();
 
   if (loading) {
     return (
@@ -26,38 +33,72 @@ export default function Nodes() {
     return null;
   }
 
-  // Mock nodes data - will be replaced with real API data from X-ui
-  const nodes = [
-    { id: 1, name: "新加坡 - SG1", country: "Singapore", countryCode: "SG", protocol: "vless", latency: 45, load: 35, status: "online" },
-    { id: 2, name: "日本 - JP1", country: "Japan", countryCode: "JP", protocol: "trojan", latency: 68, load: 42, status: "online" },
-    { id: 3, name: "美国 - US1", country: "United States", countryCode: "US", protocol: "vless", latency: 180, load: 28, status: "online" },
-    { id: 4, name: "香港 - HK1", country: "Hong Kong", countryCode: "HK", protocol: "shadowsocks", latency: 35, load: 65, status: "online" },
-    { id: 5, name: "德国 - DE1", country: "Germany", countryCode: "DE", protocol: "vless", latency: 220, load: 18, status: "online" },
-    { id: 6, name: "英国 - UK1", country: "United Kingdom", countryCode: "GB", protocol: "trojan", latency: 195, load: 22, status: "online" },
-    { id: 7, name: "韩国 - KR1", country: "South Korea", countryCode: "KR", protocol: "vless", latency: 55, load: 48, status: "online" },
-    { id: 8, name: "台湾 - TW1", country: "Taiwan", countryCode: "TW", protocol: "vmess", latency: 42, load: 55, status: "maintenance" },
-  ];
+  // Handle node sync
+  const handleSyncNodes = async () => {
+    setIsSyncing(true);
+    try {
+      const result = await syncNodesMutation.mutateAsync();
+      if (result.success) {
+        setNodes(result.nodes || []);
+        setLastUpdated(new Date().toLocaleString('zh-CN'));
+        toast.success(`✅ 成功获取 ${result.count} 个节点`);
+      } else {
+        toast.error(`❌ ${result.message}`);
+      }
+    } catch (error: any) {
+      toast.error(`获取节点失败: ${error.message}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Auto sync nodes on mount (only for admin)
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      handleSyncNodes();
+    }
+  }, []);
 
   const filteredNodes = nodes.filter(
     (node) =>
       node.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      node.country.toLowerCase().includes(searchTerm.toLowerCase())
+      node.address?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getLatencyColor = (latency: number) => {
-    if (latency < 100) return "text-green-500";
-    if (latency < 200) return "text-yellow-500";
-    return "text-red-500";
+  const getProtocolColor = (protocol: string) => {
+    const colorMap: Record<string, string> = {
+      'vless': 'bg-blue-500/10 text-blue-500',
+      'trojan': 'bg-purple-500/10 text-purple-500',
+      'shadowsocks': 'bg-red-500/10 text-red-500',
+      'vmess': 'bg-cyan-500/10 text-cyan-500',
+      'xray': 'bg-orange-500/10 text-orange-500',
+    };
+    return colorMap[protocol?.toLowerCase()] || 'bg-gray-500/10 text-gray-500';
   };
 
-  const getLoadColor = (load: number) => {
-    if (load < 50) return "bg-green-500";
-    if (load < 80) return "bg-yellow-500";
-    return "bg-red-500";
+  const downloadNodeConfig = (node: any) => {
+    const config = {
+      name: node.name,
+      protocol: node.protocol,
+      server: node.address,
+      server_port: node.port,
+      ...node.config,
+    };
+    
+    const blob = new Blob([JSON.stringify(config, null, 2)], {
+      type: 'application/json',
+    });
+    
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${node.name}.json`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    toast.success('节点配置已下载');
   };
 
-  const copySubscriptionLink = (nodeId: number) => {
-    // Mock subscription link
+  const copySubscriptionLink = (nodeId: string) => {
     const link = `https://dj.siumingho.dpdns.org/api/subscribe/${nodeId}`;
     navigator.clipboard.writeText(link);
     setCopiedId(nodeId);
@@ -95,16 +136,29 @@ export default function Nodes() {
               <h1 className="text-3xl font-bold text-foreground mb-2">节点列表</h1>
               <p className="text-muted-foreground">
                 共 {nodes.length} 个节点可用
+                {lastUpdated && ` • 最后更新: ${lastUpdated}`}
               </p>
             </div>
-            <div className="relative w-full md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="搜索节点..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 bg-secondary border-border"
-              />
+            <div className="flex gap-2 w-full md:w-auto">
+              {user?.role === 'admin' && (
+                <Button
+                  onClick={handleSyncNodes}
+                  disabled={isSyncing}
+                  className="flex-1 md:flex-none"
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                  {isSyncing ? '同步中...' : '更新节点'}
+                </Button>
+              )}
+              <div className="relative flex-1 md:flex-none md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="搜索节点..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 bg-secondary border-border"
+                />
+              </div>
             </div>
           </div>
 
@@ -138,78 +192,60 @@ export default function Nodes() {
             {filteredNodes.map((node) => (
               <Card
                 key={node.id}
-                className={`bg-card border-border hover:border-primary/50 transition-colors ${
-                  node.status === "maintenance" ? "opacity-60" : ""
-                }`}
+                className="bg-card border-border hover:border-primary/50 transition-colors"
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Globe className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">{node.name}</p>
-                        <p className="text-sm text-muted-foreground">{node.country}</p>
-                      </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground truncate">{node.name}</p>
+                      <p className="text-sm text-muted-foreground truncate">{node.address}:{node.port}</p>
                     </div>
-                    <span
-                      className={`px-2 py-1 text-xs rounded ${
-                        node.status === "online"
-                          ? "bg-green-500/10 text-green-500"
-                          : "bg-yellow-500/10 text-yellow-500"
-                      }`}
-                    >
-                      {node.status === "online" ? "在线" : "维护中"}
+                    <span className={`px-2 py-1 text-xs rounded whitespace-nowrap ml-2 ${getProtocolColor(node.protocol)}`}>
+                      {node.protocol?.toUpperCase()}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">协议</p>
-                      <p className="text-sm font-medium text-foreground uppercase">
-                        {node.protocol}
+                  <div className="space-y-2 mb-4">
+                    {node.cipher && (
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-medium">加密:</span> {node.cipher}
                       </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">延迟</p>
-                      <p className={`text-sm font-medium ${getLatencyColor(node.latency)}`}>
-                        {node.latency} ms
+                    )}
+                    {node.config?.inbound?.protocol && (
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-medium">协议:</span> {node.config.inbound.protocol}
                       </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">负载</p>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${getLoadColor(node.load)}`}
-                            style={{ width: `${node.load}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-muted-foreground">{node.load}%</span>
-                      </div>
-                    </div>
+                    )}
                   </div>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full border-primary text-primary"
-                    onClick={() => copySubscriptionLink(node.id)}
-                    disabled={node.status === "maintenance"}
-                  >
-                    {copiedId === node.id ? (
-                      <>
-                        <Check className="w-4 h-4 mr-2" />
-                        已复制
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4 mr-2" />
-                        复制节点链接
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 border-primary text-primary"
+                      onClick={() => copySubscriptionLink(node.id)}
+                    >
+                      {copiedId === node.id ? (
+                        <>
+                          <Check className="w-4 h-4 mr-1" />
+                          已复制
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4 mr-1" />
+                          复制
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-primary text-primary"
+                      onClick={() => downloadNodeConfig(node)}
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -218,7 +254,9 @@ export default function Nodes() {
           {filteredNodes.length === 0 && (
             <div className="text-center py-12">
               <Globe className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">没有找到匹配的节点</p>
+              <p className="text-muted-foreground">
+                {nodes.length === 0 ? '暂无节点，请点击"更新节点"获取最新列表' : '没有找到匹配的节点'}
+              </p>
             </div>
           )}
         </div>

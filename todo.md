@@ -78,3 +78,23 @@
 - [x] 一键激活按钮
 - [x] 激活确认邮件发送
 - [x] 客服 TG 信息展示
+
+## 新增功能 - 前后端握手与节点同步
+- [x] 3x-ui API 集成增强（HTTPS 自签名证书支持）
+- [x] 后端节点同步 tRPC 端点 (nodes.sync)
+- [x] 多协议节点解析（VLESS、Trojan、Shadowsocks、VMess）
+- [x] Sing-box 配置生成
+- [x] 订阅链接生成（Base64 编码）
+- [x] 前端节点列表页面重构
+- [x] 节点同步按钮（管理员可见）
+- [x] 节点详情显示（地址、端口、协议、加密方式）
+- [x] 节点配置下载功能
+- [x] 订阅链接复制功能
+- [x] 节点搜索和过滤功能
+- [x] 单元测试（12 个测试全部通过）
+  - [x] syncNodesFromXui 响应结构验证
+  - [x] 错误处理验证
+  - [x] 节点字段验证
+  - [x] Sing-box 配置生成
+  - [x] 订阅链接生成
+  - [x] 多协议支持（VLESS、Trojan、Shadowsocks、VMess）

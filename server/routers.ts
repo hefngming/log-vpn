@@ -10,6 +10,7 @@ import * as bcrypt from "bcryptjs";
 import { storagePut } from "./storage";
 import { notifyNewPaymentProof } from "./telegram";
 import { sendSubscriptionActivatedEmail } from "./email";
+import { syncNodesFromXui } from "./xui";
 
 // Admin procedure - requires admin role
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -140,6 +141,17 @@ export const appRouter = router({
 
   // Nodes - public for listing, protected for details
   nodes: router({
+    // Sync 3x-ui nodes
+    sync: protectedProcedure.mutation(async ({ ctx }) => {
+      // Only admin can sync nodes
+      if (ctx.user.role !== 'admin') {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Only admin can sync nodes' });
+      }
+      
+      const result = await syncNodesFromXui();
+      return result;
+    }),
+    
     list: publicProcedure.query(async () => {
       return await db.getActiveNodes();
     }),
