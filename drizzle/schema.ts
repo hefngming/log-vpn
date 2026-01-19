@@ -198,3 +198,26 @@ export const paymentProofs = mysqlTable("paymentProofs", {
 
 export type PaymentProof = typeof paymentProofs.$inferSelect;
 export type InsertPaymentProof = typeof paymentProofs.$inferInsert;
+
+/**
+ * Device fingerprints table - tracks device identifiers for free trial anti-abuse
+ * Ensures each device can only activate free trial once
+ */
+export const deviceFingerprints = mysqlTable("deviceFingerprints", {
+  id: int("id").autoincrement().primaryKey(),
+  fingerprint: varchar("fingerprint", { length: 255 }).notNull().unique(),
+  userId: int("userId").notNull(),
+  planName: varchar("planName", { length: 100 }).notNull(),
+  userAgent: text("userAgent"),
+  screenResolution: varchar("screenResolution", { length: 50 }),
+  timezone: varchar("timezone", { length: 50 }),
+  language: varchar("language", { length: 20 }),
+  hardwareInfo: text("hardwareInfo"),
+  activatedAt: timestamp("activatedAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type DeviceFingerprint = typeof deviceFingerprints.$inferSelect;
+export type InsertDeviceFingerprint = typeof deviceFingerprints.$inferInsert;

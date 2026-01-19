@@ -11,7 +11,8 @@ import {
   trafficLogs, InsertTrafficLog,
   verificationCodes, InsertVerificationCode,
   userPasswords, InsertUserPassword,
-  paymentProofs, InsertPaymentProof
+  paymentProofs, InsertPaymentProof,
+  deviceFingerprints, InsertDeviceFingerprint
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { nanoid } from 'nanoid';
@@ -624,4 +625,90 @@ export async function getUserPaymentProofs(userId: number) {
     .from(paymentProofs)
     .where(eq(paymentProofs.userId, userId))
     .orderBy(desc(paymentProofs.createdAt));
+}
+
+
+// ==================== Device Fingerprint Functions ====================
+
+export async function getDeviceFingerprintRecord(fingerprint: string) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select()
+    .from(deviceFingerprints)
+    .where(eq(deviceFingerprints.fingerprint, fingerprint))
+    .limit(1);
+  
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function createDeviceFingerprintRecord(data: InsertDeviceFingerprint): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(deviceFingerprints).values(data);
+  return result[0]?.insertId || 0;
+}
+
+export async function isDeviceFingerprintValid(fingerprint: string): Promise<boolean> {
+  const record = await getDeviceFingerprintRecord(fingerprint);
+  if (!record) return true;
+  
+  return record.expiresAt > new Date();
+}
+
+export async function getUserDeviceFingerprints(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select()
+    .from(deviceFingerprints)
+    .where(eq(deviceFingerprints.userId, userId))
+    .orderBy(desc(deviceFingerprints.createdAt));
+}
+
+export async function countFreeTrialDevices(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  
+  const result = await db.select({ count: sql<number>`COUNT(DISTINCT fingerprint)` })
+    .from(deviceFingerprints)
+    .where(eq(deviceFingerprints.planName, '免费版'));
+  
+  return result[0]?.count || 0;
+}
+
+export async function getFreeTrialStats() {
+  const db = await getDb();
+  if (!db) return {
+    totalDevices: 0,
+    activeDevices: 0,
+    expiredDevices: 0,
+  };
+  
+  const now = new Date();
+  
+  const [totalResult] = await db.select({ count: sql<number>`COUNT(*)` })
+    .from(deviceFingerprints)
+    .where(eq(deviceFingerprints.planName, '免费版'));
+  
+  const [activeResult] = await db.select({ count: sql<number>`COUNT(*)` })
+    .from(deviceFingerprints)
+    .where(and(
+      eq(deviceFingerprints.planName, '免费版'),
+      gte(deviceFingerprints.expiresAt, now)
+    ));
+  
+  const [expiredResult] = await db.select({ count: sql<number>`COUNT(*)` })
+    .from(deviceFingerprints)
+    .where(and(
+      eq(deviceFingerprints.planName, '免费版'),
+      lte(deviceFingerprints.expiresAt, now)
+    ));
+  
+  return {
+    totalDevices: totalResult?.count || 0,
+    activeDevices: activeResult?.count || 0,
+    expiredDevices: expiredResult?.count || 0,
+  };
 }
