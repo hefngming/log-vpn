@@ -18,7 +18,7 @@ export default function DownloadPage() {
       platform: "macOS",
       icon: Apple,
       version: "1.0.0",
-      size: "38 MB",
+      size: "261 MB",
       requirements: "macOS 11.0+",
       downloadUrl: "https://dj.siumingho.dpdns.org/downloads/LogVPN_Official.exe",
       features: ["一键连接", "智能选路", "流量统计", "菜单栏快捷操作"],
