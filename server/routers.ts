@@ -14,6 +14,7 @@ import { syncNodesFromXui } from "./xui";
 import { freeTrialRouter } from "./freetrial-router";
 import { deviceRouter } from "./device-router";
 import { referralRouter } from "./referral-router";
+import { autoReviewRouter } from "./autoreview-router";
 import { encryptNodeList } from "./nodeEncryption";
 import { checkForUpdate, getLatestVersion, getAllVersions, getVersionInfo } from "./versionManagement";
 import { getUserTrafficUsage } from "./trafficQuery";
@@ -31,6 +32,7 @@ export const appRouter = router({
   freeTrial: freeTrialRouter,
   referral: referralRouter,
   device: deviceRouter,
+  autoReview: autoReviewRouter,
   
   download: router({
     getFile: publicProcedure

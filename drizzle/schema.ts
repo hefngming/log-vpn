@@ -273,3 +273,49 @@ export const referralRecords = mysqlTable('referral_records', {
   referredReward: int('referred_reward').notNull().default(0), // 被推荐人获得的流量奖励（MB）
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+
+/**
+ * Auto review rules table - defines automatic payment proof review rules
+ */
+export const autoReviewRules = mysqlTable("autoReviewRules", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(), // Rule name
+  description: text("description"), // Rule description
+  isEnabled: boolean("isEnabled").default(true).notNull(), // Enable/disable rule
+  priority: int("priority").default(0).notNull(), // Higher priority rules are checked first
+  
+  // Conditions (JSON string)
+  conditions: text("conditions").notNull(), // { amountMatch: true, minAmount: 199, maxAmount: 199, ... }
+  
+  // Action
+  action: mysqlEnum("action", ["auto_approve", "auto_reject", "manual_review"]).notNull(),
+  
+  // Auto-approval settings (only used when action is "auto_approve")
+  autoApproveDays: int("autoApproveDays").default(30), // Subscription days to grant
+  autoApproveTrafficGB: int("autoApproveTrafficGB").default(200), // Traffic limit in GB
+  
+  createdBy: int("createdBy").notNull(), // Admin user ID who created the rule
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AutoReviewRule = typeof autoReviewRules.$inferSelect;
+export type InsertAutoReviewRule = typeof autoReviewRules.$inferInsert;
+
+/**
+ * Auto review logs table - tracks automatic review decisions
+ */
+export const autoReviewLogs = mysqlTable("autoReviewLogs", {
+  id: int("id").autoincrement().primaryKey(),
+  paymentProofId: int("paymentProofId").notNull(), // Reference to paymentProofs table
+  ruleId: int("ruleId"), // Which rule was applied (null if no rule matched)
+  ruleName: varchar("ruleName", { length: 100 }), // Rule name at the time of execution
+  decision: mysqlEnum("decision", ["auto_approved", "auto_rejected", "manual_review_required", "no_rule_matched"]).notNull(),
+  reason: text("reason"), // Explanation of the decision
+  conditionsChecked: text("conditionsChecked"), // JSON string of conditions that were evaluated
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AutoReviewLog = typeof autoReviewLogs.$inferSelect;
+export type InsertAutoReviewLog = typeof autoReviewLogs.$inferInsert;

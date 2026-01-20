@@ -15,6 +15,7 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminNodes from "./pages/admin/AdminNodes";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminReview from "./pages/admin/AdminReview";
+import AutoReviewRules from "./pages/admin/AutoReviewRules";
 import Referral from "./pages/Referral";
 import Register from "./pages/Register";
 
@@ -34,6 +35,7 @@ function Router() {
       <Route path="/admin/nodes" component={AdminNodes} />
       <Route path="/admin/settings" component={AdminSettings} />
       <Route path="/admin/review" component={AdminReview} />
+      <Route path="/admin/auto-review-rules" component={AutoReviewRules} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
