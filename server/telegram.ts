@@ -86,3 +86,26 @@ export async function notifySubscriptionActivated(
 
   return sendTelegramMessage({ text: message, parse_mode: "HTML" });
 }
+
+/**
+ * 发送付费成功通知（用户购买套餐后）
+ */
+export async function notifyPaymentSuccess(
+  userEmail: string,
+  planName: string,
+  amount: string,
+  orderNo: string
+): Promise<boolean> {
+  const message = `💰 <b>付费成功通知</b>
+
+用户 <code>${userEmail}</code> 已成功购买套餐
+
+📦 套餐：${planName}
+💵 金额：¥${amount}
+📝 订单号：<code>${orderNo}</code>
+
+请及时审核并激活订阅：
+<a href="https://dj.siumingho.dpdns.org/admin/review">点击进入审核中心</a>`;
+
+  return sendTelegramMessage({ text: message, parse_mode: "HTML" });
+}

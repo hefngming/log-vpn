@@ -16,18 +16,38 @@ export default function Register() {
   const [referralCode, setReferralCode] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [referralValid, setReferralValid] = useState<boolean | null>(null);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [countdown, setCountdown] = useState(0);
+
+  const sendCodeMutation = trpc.auth.sendVerificationCode.useMutation({
+    onSuccess: () => {
+      toast.success('验证码已发送，请查收邮件');
+      setCountdown(60);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || '验证码发送失败');
+    },
+  });
 
   const registerMutation = trpc.auth.register.useMutation({
     onSuccess: () => {
       toast.success('注册成功！请登录');
       setLocation('/');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(error.message || '注册失败');
     },
   });
 
   const validateReferralQuery = trpc.referral.validateReferralCode.useQuery;
+
+  // 倒计时逻辑
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
 
   // 从 URL 参数中获取推荐码
   useEffect(() => {
@@ -63,11 +83,30 @@ export default function Register() {
     }
   };
 
+  const handleSendCode = async () => {
+    if (!email) {
+      toast.error('请先输入邮箱地址');
+      return;
+    }
+
+    if (!email.includes('@')) {
+      toast.error('请输入有效的邮箱地址');
+      return;
+    }
+
+    sendCodeMutation.mutate({ email, type: 'register' });
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email || !password) {
       toast.error('请填写邮箱和密码');
+      return;
+    }
+
+    if (!verificationCode) {
+      toast.error('请输入邮箱验证码');
       return;
     }
 
@@ -84,6 +123,7 @@ export default function Register() {
     registerMutation.mutate({
       email,
       password,
+      verificationCode,
       referralCode: referralCode || undefined,
     });
   };
@@ -117,6 +157,34 @@ export default function Register() {
                   className="pl-10"
                   required
                 />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="verificationCode">邮箱验证码</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="verificationCode"
+                    type="text"
+                    placeholder="输入 6 位验证码"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                    className="pl-10"
+                    maxLength={6}
+                    required
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleSendCode}
+                  disabled={countdown > 0 || sendCodeMutation.isPending || !email}
+                  className="whitespace-nowrap"
+                >
+                  {countdown > 0 ? `${countdown}s` : sendCodeMutation.isPending ? '发送中...' : '发送验证码'}
+                </Button>
               </div>
             </div>
 

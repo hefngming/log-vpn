@@ -8,7 +8,7 @@ import * as db from "./db";
 import { sendVerificationCode, generateVerificationCode } from "./email";
 import * as bcrypt from "bcryptjs";
 import { storagePut } from "./storage";
-import { notifyNewPaymentProof } from "./telegram";
+import { notifyNewPaymentProof, notifyPaymentSuccess } from "./telegram";
 import { sendSubscriptionActivatedEmail } from "./email";
 import { syncNodesFromXui } from "./xui";
 import { freeTrialRouter } from "./freetrial-router";
@@ -114,12 +114,19 @@ export const appRouter = router({
       .input(z.object({
         email: z.string().email(),
         password: z.string().min(6),
+        verificationCode: z.string(),
         referralCode: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const existingUser = await db.getUserByEmail(input.email);
         if (existingUser) {
           throw new TRPCError({ code: 'BAD_REQUEST', message: '该邮箱已注册' });
+        }
+
+        // 验证验证码
+        const isValid = await db.verifyCode(input.email, input.verificationCode, 'register');
+        if (!isValid) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: '验证码错误或已过期' });
         }
 
         const passwordHash = await bcrypt.hash(input.password, 10);
@@ -160,6 +167,31 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    
+    // Send verification code (for registration, password reset, etc.)
+    sendVerificationCode: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        type: z.enum(['register', 'password_reset', 'change_password']),
+      }))
+      .mutation(async ({ input }) => {
+        // 生成验证码
+        const code = generateVerificationCode();
+        
+        // 保存到数据库（包含 60 秒频率限制）
+        const result = await db.createVerificationCode(input.email, code, input.type);
+        if (!result.success) {
+          throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: result.error || '请稍后再试' });
+        }
+        
+        // 发送邮件
+        const sent = await sendVerificationCode(input.email, code, input.type);
+        if (!sent) {
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: '验证码发送失败' });
+        }
+        
+        return { success: true, message: '验证码已发送到您的邮箱' };
+      }),
     
     // Send verification code for password reset
     sendResetCode: publicProcedure
@@ -470,6 +502,15 @@ export const appRouter = router({
           ctx.user.email || ctx.user.name || `User #${ctx.user.id}`,
           input.planName,
           input.amount
+        );
+        
+        // 发送付费成功通知（包含订单号）
+        const orderNo = `PROOF-${proofId}`;
+        await notifyPaymentSuccess(
+          ctx.user.email || ctx.user.name || `User #${ctx.user.id}`,
+          input.planName,
+          input.amount,
+          orderNo
         );
         
         return { success: true, proofId };
