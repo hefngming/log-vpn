@@ -256,3 +256,14 @@
 - [x] 重新构建前端（pnpm build）
 - [x] 重启前端服务器
 - [x] 验证修复结果（只显示官方 Log VPN 安装包）
+
+
+## 完成 - 使用 Sing-box 封装 LogVPN 客户端
+- [x] 下载 Sing-box 核心二进制文件 (v1.12.17)
+- [x] 创建 Sing-box 配置文件（包含香港-快速专线节点）
+- [x] 为 Windows 创建 LogVPN 客户端包装脚本 (NSIS)
+- [x] 为 macOS 创建 LogVPN 客户端包装 (App Bundle)
+- [x] 打包并上传到服务器
+- [x] 更新前端下载页面指向新的客户端
+- [x] 修复 Nginx 配置以支持静态文件下载
+- [x] 验证下载链接正常工作 (HTTP 200)
