@@ -71,6 +71,70 @@ export const appRouter = router({
   }),
   
   auth: router({
+    // 用户登录
+    login: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(6),
+        machineId: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const user = await db.getUserByEmail(input.email);
+        if (!user) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: '邮箱或密码错误' });
+        }
+
+        const passwordHash = await db.getUserPasswordHash(user.id);
+        if (!passwordHash) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: '邮箱或密码错误' });
+        }
+        const passwordMatch = await bcrypt.compare(input.password, passwordHash);
+        if (!passwordMatch) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: '邮箱或密码错误' });
+        }
+
+        // 返回用户信息和令牌
+        return {
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            token: 'mock-token-' + user.id,
+          },
+        };
+      }),
+
+    // 用户注册
+    register: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(6),
+      }))
+      .mutation(async ({ input }) => {
+        const existingUser = await db.getUserByEmail(input.email);
+        if (existingUser) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: '该邮箱已注册' });
+        }
+
+        const passwordHash = await bcrypt.hash(input.password, 10);
+        const newUser = await db.createUser({
+          email: input.email,
+          passwordHash,
+          role: 'user',
+        });
+
+        return {
+          success: true,
+          message: '注册成功',
+          user: {
+            id: newUser.id,
+            email: newUser.email,
+            role: newUser.role,
+          },
+        };
+      }),
+
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);

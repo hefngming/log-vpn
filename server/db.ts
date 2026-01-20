@@ -768,3 +768,47 @@ export async function updateUser(userId: number, data: Partial<typeof users.$inf
     .set(data)
     .where(eq(users.id, userId));
 }
+
+/**
+ * Create a new user with email/password (for client app registration)
+ */
+export async function createUser(data: {
+  email: string;
+  passwordHash?: string;
+  role?: 'user' | 'admin';
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const openId = 'email-' + Math.random().toString(36).substring(7);
+  
+  const result = await db.insert(users).values({
+    openId,
+    email: data.email,
+    loginMethod: 'email',
+    role: data.role || 'user',
+  });
+  
+  const userId = (result as any).insertId || 1;
+  
+  if (data.passwordHash) {
+    await setUserPassword(userId, data.passwordHash);
+  }
+  
+  return {
+    id: userId,
+    email: data.email,
+    role: data.role || 'user',
+  };
+}
+
+/**
+ * Create a new user with password
+ */
+export async function createUserWithPassword(data: {
+  email: string;
+  passwordHash: string;
+  role?: 'user' | 'admin';
+}) {
+  return createUser(data);
+}
