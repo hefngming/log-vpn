@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO users (openId, email, passwordHash, name, role, loginMethod) \nVALUES (UUID(), 'vpntest@example.com', '$2b$10$GSSncaftwlKK9aFQjUwetumVzfEhtHACfxeB.YMcqjrINM580az7K', 'VPN测试用户', 'user', 'password')\nON DUPLICATE KEY UPDATE passwordHash = '$2b$10$GSSncaftwlKK9aFQjUwetumVzfEhtHACfxeB.YMcqjrINM580az7K';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2niMBJFQbqWKXSJ.root --database ik4QKwpUJXHkdpgpXC9yL3 --execute INSERT INTO users (openId, email, passwordHash, name, role, loginMethod) \nVALUES (UUID(), 'vpntest@example.com', '$2b$10$GSSncaftwlKK9aFQjUwetumVzfEhtHACfxeB.YMcqjrINM580az7K', 'VPN测试用户', 'user', 'password')\nON DUPLICATE KEY UPDATE passwordHash = '$2b$10$GSSncaftwlKK9aFQjUwetumVzfEhtHACfxeB.YMcqjrINM580az7K';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 62
+}

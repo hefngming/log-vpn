@@ -50,6 +50,13 @@
       "when": 1768868662670,
       "tag": "0006_romantic_roulette",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1768902610944,
+      "tag": "0007_clear_wallop",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,8 @@
+{
+  "query": "INSERT INTO user (email, passwordHash, role, createdAt, updatedAt) \nVALUES ('vpntest@example.com', '$2b$10$GSSncaftwlKK9aFQjUwetumVzfEhtHACfxeB.YMcqjrINM580az7K', 'user', NOW(), NOW())\nON DUPLICATE KEY UPDATE passwordHash = '$2b$10$GSSncaftwlKK9aFQjUwetumVzfEhtHACfxeB.YMcqjrINM580az7K';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2niMBJFQbqWKXSJ.root --database ik4QKwpUJXHkdpgpXC9yL3 --execute INSERT INTO user (email, passwordHash, role, createdAt, updatedAt) \nVALUES ('vpntest@example.com', '$2b$10$GSSncaftwlKK9aFQjUwetumVzfEhtHACfxeB.YMcqjrINM580az7K', 'user', NOW(), NOW())\nON DUPLICATE KEY UPDATE passwordHash = '$2b$10$GSSncaftwlKK9aFQjUwetumVzfEhtHACfxeB.YMcqjrINM580az7K';",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1146 (42S02) at line 1: Table 'ik4qkwpujxhkdpgpxc9yl3.user' doesn't exist"
+  ]
+}

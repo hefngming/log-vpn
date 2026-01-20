@@ -1,0 +1,8 @@
+{
+  "query": "INSERT INTO users (email, passwordHash, name, role, loginMethod, createdAt, updatedAt, lastActiveAt, lastSignedIn) \nVALUES ('vpntest@example.com', '$2b$10$GSSncaftwlKK9aFQjUwetumVzfEhtHACfxeB.YMcqjrINM580az7K', 'VPN测试用户', 'user', 'password', NOW(), NOW(), NOW(), NOW())\nON DUPLICATE KEY UPDATE passwordHash = '$2b$10$GSSncaftwlKK9aFQjUwetumVzfEhtHACfxeB.YMcqjrINM580az7K';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2niMBJFQbqWKXSJ.root --database ik4QKwpUJXHkdpgpXC9yL3 --execute INSERT INTO users (email, passwordHash, name, role, loginMethod, createdAt, updatedAt, lastActiveAt, lastSignedIn) \nVALUES ('vpntest@example.com', '$2b$10$GSSncaftwlKK9aFQjUwetumVzfEhtHACfxeB.YMcqjrINM580az7K', 'VPN测试用户', 'user', 'password', NOW(), NOW(), NOW(), NOW())\nON DUPLICATE KEY UPDATE passwordHash = '$2b$10$GSSncaftwlKK9aFQjUwetumVzfEhtHACfxeB.YMcqjrINM580az7K';",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'lastActiveAt' in 'field list'"
+  ]
+}
