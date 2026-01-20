@@ -18,11 +18,13 @@ import {
   Loader2,
   Eye,
   CheckSquare,
-  Square
+  Square,
+  Download
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import * as XLSX from 'xlsx';
 
 interface PaymentProof {
   id: number;
@@ -200,6 +202,63 @@ export default function AdminReview() {
     });
   };
 
+  const handleExportExcel = () => {
+    const proofs = allProofs || [];
+    if (proofs.length === 0) {
+      toast.error("没有数据可导出");
+      return;
+    }
+
+    const data = proofs.map(proof => ({
+      '订单号': proof.id,
+      '用户邮箱': proof.userEmail || 'N/A',
+      '套餐类型': proof.planName,
+      '支付金额': `￥${proof.amount}`,
+      '审核状态': proof.status === 'pending' ? '待审核' : proof.status === 'approved' ? '已通过' : '已拒绝',
+      '提交时间': formatDate(proof.createdAt),
+      '审核时间': proof.reviewedAt ? formatDate(proof.reviewedAt) : 'N/A',
+      '备注': proof.adminNote || 'N/A',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '支付凭证');
+    XLSX.writeFile(wb, `支付凭证记录_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success("导出成功");
+  };
+
+  const handleExportCSV = () => {
+    const proofs = allProofs || [];
+    if (proofs.length === 0) {
+      toast.error("没有数据可导出");
+      return;
+    }
+
+    const headers = ['订单号', '用户邮箱', '套餐类型', '支付金额', '审核状态', '提交时间', '审核时间', '备注'];
+    const rows = proofs.map(proof => [
+      proof.id,
+      proof.userEmail || 'N/A',
+      proof.planName,
+      `￥${proof.amount}`,
+      proof.status === 'pending' ? '待审核' : proof.status === 'approved' ? '已通过' : '已拒绝',
+      formatDate(proof.createdAt),
+      proof.reviewedAt ? formatDate(proof.reviewedAt) : 'N/A',
+      proof.adminNote || 'N/A',
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `支付凭证记录_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    toast.success("导出成功");
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -322,9 +381,29 @@ export default function AdminReview() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">审核中心</h1>
-          <p className="text-muted-foreground">审核用户提交的支付凭证</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">审核中心</h1>
+            <p className="text-muted-foreground">审核用户提交的支付凭证</p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleExportExcel}
+              className="border-primary text-primary"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              导出 Excel
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleExportCSV}
+              className="border-primary text-primary"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              导出 CSV
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}

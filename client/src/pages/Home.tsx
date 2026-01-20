@@ -139,12 +139,45 @@ export default function Home() {
       <section className="py-20">
         <div className="container">
           <h2 className="text-3xl font-bold text-center text-foreground mb-4">
-            无限尊享套餐
+            选择您的套餐
           </h2>
           <p className="text-center text-muted-foreground mb-12">
-            一次购买，尽享所有服务
+            免费体验或无限尊享，畅享网络自由
           </p>
-          <div className="flex justify-center max-w-md mx-auto">
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {/* Free Trial Plan */}
+            <Card className="bg-card border-border hover:border-primary/50 transition-colors w-full">
+              <CardContent className="p-8">
+                <h3 className="text-2xl font-bold text-foreground mb-2 text-center">免费体验</h3>
+                <div className="text-4xl font-bold text-foreground mb-6 text-center">
+                  ￥0<span className="text-xl font-normal text-muted-foreground">/天</span>
+                </div>
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center gap-3 text-muted-foreground">
+                    <Check className="w-5 h-5 text-primary" />
+                    <span className="text-base">1GB 流量</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-muted-foreground">
+                    <Check className="w-5 h-5 text-primary" />
+                    <span className="text-base">1 天有效期</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-muted-foreground">
+                    <Check className="w-5 h-5 text-primary" />
+                    <span className="text-base">基础节点</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-muted-foreground">
+                    <Check className="w-5 h-5 text-primary" />
+                    <span className="text-base">每设备限一次</span>
+                  </li>
+                </ul>
+                <Link href="/dashboard">
+                  <Button className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground py-6 text-lg" variant="outline">
+                    免费体验
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
             {/* Premium Unlimited Plan */}
             <Card className="bg-card border-primary relative w-full">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-primary-foreground text-sm rounded-full">

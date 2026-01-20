@@ -41,6 +41,18 @@ export default function Recharge() {
 
   const plans = [
     {
+      id: 0,
+      name: "免费体验",
+      price: 0,
+      duration: "1天",
+      traffic: "1GB",
+      dailyLimit: "1GB/天",
+      devices: 1,
+      features: ["1GB 流量", "1 天有效期", "基础节点", "每设备限一次"],
+      recommended: false,
+      isFree: true,
+    },
+    {
       id: 1,
       name: "无限尊享版",
       price: 199,
@@ -50,6 +62,7 @@ export default function Recharge() {
       devices: 10,
       features: ["无限流量", "10GB 日流量限制", "永久使用", "全部高速节点", "7x24 专属客服", "10 个设备同时在线", "支持 VLESS、Trojan、Shadowsocks"],
       recommended: true,
+      isFree: false,
     },
   ];
 
@@ -59,6 +72,11 @@ export default function Recharge() {
       return;
     }
     
+    // 如果是免费体验，跳转到 Dashboard 激活
+    if (plan.isFree) {
+      window.location.href = '/dashboard';
+      return;
+    }
     
     setSelectedPlan(plan);
     setUploadedImage(null);
@@ -317,11 +335,24 @@ export default function Recharge() {
             {/* QR Code */}
             <div className="space-y-3">
               <p className="text-sm font-medium text-foreground">扫码支付</p>
-              <div className="bg-secondary rounded-lg p-4 aspect-square flex items-center justify-center">
-                <div className="text-center">
+              <div className="bg-secondary rounded-lg p-4 flex items-center justify-center">
+                <img 
+                  src={paymentMethod === 'wechat' ? '/images/wechat-pay.jpg' : '/images/alipay.jpg'}
+                  alt={`${paymentMethod === 'wechat' ? '微信' : '支付宝'}收款码`}
+                  className="max-w-full h-auto rounded"
+                  onError={(e) => {
+                    // 如果图片加载失败，显示默认图标
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+                <div className="text-center hidden">
                   <QrCode className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">
                     {paymentMethod === 'wechat' ? '微信' : '支付宝'}收款码
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    图片加载失败，请联系客服
                   </p>
                 </div>
               </div>
