@@ -80,12 +80,21 @@ export default function Home() {
                   立即下载
                 </Button>
               </Link>
-              <Link href="/recharge">
-                <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary/10">
-                  查看套餐
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
+              {isAuthenticated ? (
+                <Link href="/recharge">
+                  <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary/10">
+                    查看套餐
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </Link>
+              ) : (
+                <a href={`${getLoginUrl()}?redirect=${encodeURIComponent('/recharge')}`}>
+                  <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary/10">
+                    查看套餐
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </a>
+              )}
             </div>
           </div>
         </div>

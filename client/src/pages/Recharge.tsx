@@ -5,40 +5,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Shield, Check, QrCode, MessageCircle, ArrowLeft, Download, Copy, Upload, Image, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { getLoginUrl } from "@/const";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
 export default function Recharge() {
   const { isAuthenticated, loading, user } = useAuth();
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<typeof plans[0] | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'wechat' | 'alipay'>('wechat');
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const uploadProofMutation = trpc.paymentProof.upload.useMutation({
-    onSuccess: () => {
-      setShowPaymentDialog(false);
-      setShowSuccessDialog(true);
-      setUploadedImage(null);
-    },
-    onError: (error) => {
-      toast.error(`提交失败: ${error.message}`);
-      setIsUploading(false);
-    },
-  });
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
-  }
-
+  
   const plans = [
     {
       id: 0,
@@ -65,10 +38,58 @@ export default function Recharge() {
       isFree: false,
     },
   ];
+  
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<typeof plans[0] | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'wechat' | 'alipay'>('wechat');
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadProofMutation = trpc.paymentProof.upload.useMutation({
+    onSuccess: () => {
+      setShowPaymentDialog(false);
+      setShowSuccessDialog(true);
+      setUploadedImage(null);
+    },
+    onError: (error) => {
+      toast.error(`提交失败: ${error.message}`);
+      setIsUploading(false);
+    },
+  });
+
+  // Auto-open payment dialog after login if user had selected a plan
+  useEffect(() => {
+    if (isAuthenticated && !loading) {
+      const savedPlanId = sessionStorage.getItem('selectedPlanId');
+      if (savedPlanId) {
+        sessionStorage.removeItem('selectedPlanId');
+        const planId = parseInt(savedPlanId);
+        const plan = plans.find(p => p.id === planId);
+        if (plan) {
+          // Small delay to ensure page is fully loaded
+          setTimeout(() => {
+            handleSelectPlan(plan);
+          }, 500);
+        }
+      }
+    }
+  }, [isAuthenticated, loading]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   const handleSelectPlan = (plan: typeof plans[0]) => {
     if (!isAuthenticated) {
-      window.location.href = getLoginUrl();
+      // Save selected plan to sessionStorage for later retrieval
+      sessionStorage.setItem('selectedPlanId', plan.id.toString());
+      window.location.href = `${getLoginUrl()}?redirect=${encodeURIComponent('/recharge')}`;
       return;
     }
     
