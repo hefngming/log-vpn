@@ -139,105 +139,47 @@ export default function Home() {
       <section className="py-20">
         <div className="container">
           <h2 className="text-3xl font-bold text-center text-foreground mb-4">
-            选择您的套餐
+            无限尊享套餐
           </h2>
           <p className="text-center text-muted-foreground mb-12">
-            灵活的套餐选择，满足您的不同需求
+            一次购买，尽享所有服务
           </p>
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {/* Basic Plan */}
-            <Card className="bg-card border-border">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-2">基础版</h3>
-                <div className="text-3xl font-bold text-foreground mb-4">
-                  ¥29<span className="text-lg font-normal text-muted-foreground">/月</span>
-                </div>
-                <ul className="space-y-3 mb-6">
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <Check className="w-4 h-4 text-primary" />
-                    50GB 流量/月
-                  </li>
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <Check className="w-4 h-4 text-primary" />
-                    3 个设备同时在线
-                  </li>
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <Check className="w-4 h-4 text-primary" />
-                    基础节点
-                  </li>
-                </ul>
-                <Link href="/recharge">
-                  <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10">
-                    选择套餐
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* Pro Plan */}
-            <Card className="bg-card border-primary relative">
+          <div className="flex justify-center max-w-md mx-auto">
+            {/* Premium Unlimited Plan */}
+            <Card className="bg-card border-primary relative w-full">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-primary-foreground text-sm rounded-full">
-                推荐
+                热门
               </div>
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-2">专业版</h3>
-                <div className="text-3xl font-bold text-foreground mb-4">
-                  ¥59<span className="text-lg font-normal text-muted-foreground">/月</span>
+              <CardContent className="p-8">
+                <h3 className="text-2xl font-bold text-foreground mb-2 text-center">无限尊享版</h3>
+                <div className="text-4xl font-bold text-foreground mb-6 text-center">
+                  ￥199<span className="text-xl font-normal text-muted-foreground">/月</span>
                 </div>
-                <ul className="space-y-3 mb-6">
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <Check className="w-4 h-4 text-primary" />
-                    200GB 流量/月
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center gap-3 text-muted-foreground">
+                    <Check className="w-5 h-5 text-primary" />
+                    <span className="text-base">无限流量</span>
                   </li>
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <Check className="w-4 h-4 text-primary" />
-                    5 个设备同时在线
+                  <li className="flex items-center gap-3 text-muted-foreground">
+                    <Check className="w-5 h-5 text-primary" />
+                    <span className="text-base">10 个设备同时在线</span>
                   </li>
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <Check className="w-4 h-4 text-primary" />
-                    全部节点
+                  <li className="flex items-center gap-3 text-muted-foreground">
+                    <Check className="w-5 h-5 text-primary" />
+                    <span className="text-base">专属高速节点</span>
                   </li>
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <Check className="w-4 h-4 text-primary" />
-                    优先客服支持
+                  <li className="flex items-center gap-3 text-muted-foreground">
+                    <Check className="w-5 h-5 text-primary" />
+                    <span className="text-base">7x24 专属客服</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-muted-foreground">
+                    <Check className="w-5 h-5 text-primary" />
+                    <span className="text-base">支持 VLESS、Trojan、Shadowsocks</span>
                   </li>
                 </ul>
                 <Link href="/recharge">
-                  <Button className="w-full gradient-primary text-white border-0">
-                    选择套餐
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* Enterprise Plan */}
-            <Card className="bg-card border-border">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-2">企业版</h3>
-                <div className="text-3xl font-bold text-foreground mb-4">
-                  ¥199<span className="text-lg font-normal text-muted-foreground">/月</span>
-                </div>
-                <ul className="space-y-3 mb-6">
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <Check className="w-4 h-4 text-primary" />
-                    无限流量
-                  </li>
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <Check className="w-4 h-4 text-primary" />
-                    10 个设备同时在线
-                  </li>
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <Check className="w-4 h-4 text-primary" />
-                    专属高速节点
-                  </li>
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <Check className="w-4 h-4 text-primary" />
-                    7x24 专属客服
-                  </li>
-                </ul>
-                <Link href="/recharge">
-                  <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10">
-                    选择套餐
+                  <Button className="w-full gradient-primary text-white border-0 py-6 text-lg">
+                    立即购买
                   </Button>
                 </Link>
               </CardContent>

@@ -42,23 +42,13 @@ export default function Recharge() {
   const plans = [
     {
       id: 1,
-      name: "免费体验",
-      price: 0,
-      duration: 1,
-      traffic: "1GB",
-      devices: 1,
-      features: ["体验版本", "1天有效期", "每台设备仅一次", "标准节点"],
-      isFree: true,
-    },
-    {
-      id: 2,
       name: "无限尊享版",
       price: 199,
       duration: "永久",
-      traffic: "200GB/月",
+      traffic: "无限流量",
       dailyLimit: "10GB/天",
       devices: 10,
-      features: ["200GB 月流量", "10GB 日流量限制", "永久使用", "全部高速节点", "7x24 专属客服", "10 个设备同时在线"],
+      features: ["无限流量", "10GB 日流量限制", "永久使用", "全部高速节点", "7x24 专属客服", "10 个设备同时在线", "支持 VLESS、Trojan、Shadowsocks"],
       recommended: true,
     },
   ];
@@ -69,11 +59,6 @@ export default function Recharge() {
       return;
     }
     
-    // 免费版直接激活
-    if (plan.isFree) {
-      toast.success("免费版已激活！您可以体验 1 天，1GB 流量");
-      return;
-    }
     
     setSelectedPlan(plan);
     setUploadedImage(null);
@@ -169,14 +154,14 @@ export default function Recharge() {
         <div className="container">
           {/* Header */}
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-foreground mb-4">选择您的套餐</h1>
+            <h1 className="text-4xl font-bold text-foreground mb-4">无限尊享套餐</h1>
             <p className="text-xl text-muted-foreground">
-              灵活的套餐选择，满足您的不同需求
+              一次购买，尽享所有服务
             </p>
           </div>
 
           {/* Plans Grid */}
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
+          <div className="flex justify-center max-w-2xl mx-auto mb-12">
             {plans.map((plan) => (
               <Card
                 key={plan.id}
@@ -243,7 +228,7 @@ export default function Recharge() {
                     }`}
                     variant={plan.recommended ? 'default' : 'outline'}
                   >
-                    {plan.isFree ? '立即体验' : '选择套餐'}
+                    立即购买
                   </Button>
                 </CardContent>
               </Card>
