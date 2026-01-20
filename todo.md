@@ -414,3 +414,33 @@
 - [x] 上传成功后显示成功提示（toast 通知 + 成功对话框）
 - [x] 优化“返回控制台”按钮功能（自动跳转到 Dashboard）
 - [ ] 测试上传功能（选择图片 → 上传 → 成功提示）
+
+
+## Bug 修复 - 收款码图片显示
+- [x] 检查支付对话框的收款码图片引用路径
+- [x] 修复微信收款码图片路径（/images/wechat-pay.jpg）
+- [x] 修复支付宝收款码图片路径（/images/alipay.jpg）
+- [x] 测试支付对话框收款码显示（图片文件已存在，路径正确）
+
+
+## 客户端程序验证
+- [x] 检查下载页面的客户端程序下载链接（配置存在但文件 404）
+- [ ] 验证客户端程序文件是否存在（需要上传到服务器）
+- [x] 检查节点 API 接口（nodes.list 和 nodes.getEncrypted 已实现）
+- [x] 验证自动更新节点功能（nodes.sync 从 3x-ui 同步）
+- [x] 确认支持的协议（VLESS、Trojan、Shadowsocks、VMess）
+- [ ] 验证一键连接功能（需要客户端程序）
+
+
+## LogVPN 客户端开发（基于 v2rayN）
+- [x] 准备开发文档（LOGVPN_CLIENT_DEVELOPMENT_GUIDE.md）
+- [x] 准备 API 集成配置文件（client-api-config.json）
+- [ ] 准备 v2rayN 源代码和开发环境
+- [ ] 品牌定制（LogVPN 名称、图标、启动画面）
+- [ ] 实现自动登录功能（OAuth 集成）
+- [ ] 实现节点自动获取（调用 nodes.getEncrypted API）
+- [ ] 实现节点解密和配置导入
+- [ ] 实现一键连接功能
+- [ ] 实现流量统计和上报（调用 traffic.log API）
+- [ ] 编译 Windows 安装程序（NSIS）
+- [ ] 上传到服务器并测试下载
