@@ -42,7 +42,7 @@ export default function Recharge() {
   const plans = [
     {
       id: 1,
-      name: "免费版",
+      name: "免费体验",
       price: 0,
       duration: 1,
       traffic: "1GB",
@@ -54,11 +54,11 @@ export default function Recharge() {
       id: 2,
       name: "无限尊享版",
       price: 199,
-      duration: 30,
+      duration: "永久",
       traffic: "200GB/月",
       dailyLimit: "10GB/天",
       devices: 10,
-      features: ["200GB 月流量", "10GB 日流量限制", "全部高速节点", "7x24 专属客服", "10 个设备同时在线"],
+      features: ["200GB 月流量", "10GB 日流量限制", "永久使用", "全部高速节点", "7x24 专属客服", "10 个设备同时在线"],
       recommended: true,
     },
   ];
@@ -195,7 +195,7 @@ export default function Recharge() {
                   <div className="mt-4">
                     <div className="text-4xl font-bold text-primary">
                       ¥{plan.price}
-                      <span className="text-lg text-muted-foreground ml-2">/月</span>
+                      <span className="text-lg text-muted-foreground ml-2">{plan.price === 0 ? '免费' : '/月'}</span>
                     </div>
                   </div>
                 </CardHeader>
@@ -215,7 +215,7 @@ export default function Recharge() {
                     )}
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">有效期</span>
-                      <span className="font-semibold text-foreground">{plan.duration} 天</span>
+                      <span className="font-semibold text-foreground">{typeof plan.duration === 'string' ? plan.duration : plan.duration + ' 天'}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">设备数</span>
