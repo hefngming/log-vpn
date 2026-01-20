@@ -13,6 +13,7 @@ import { sendSubscriptionActivatedEmail } from "./email";
 import { syncNodesFromXui } from "./xui";
 import { freeTrialRouter } from "./freetrial-router";
 import { encryptNodeList } from "./nodeEncryption";
+import { checkForUpdate, getLatestVersion, getAllVersions, getVersionInfo } from "./versionManagement";
 
 // Admin procedure - requires admin role
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -25,6 +26,35 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 export const appRouter = router({
   system: systemRouter,
   freeTrial: freeTrialRouter,
+  
+  version: router({
+    check: publicProcedure
+      .input(z.object({ currentVersion: z.string() }))
+      .query(({ input }) => {
+        return checkForUpdate(input.currentVersion);
+      }),
+    
+    latest: publicProcedure.query(() => {
+      const latestVersion = getLatestVersion();
+      return getVersionInfo(latestVersion);
+    }),
+    
+    all: publicProcedure.query(() => {
+      return getAllVersions();
+    }),
+    
+    update: adminProcedure
+      .input(z.object({
+        version: z.string(),
+        releaseDate: z.string(),
+        downloadUrl: z.string().url(),
+        releaseNotes: z.string(),
+        mandatory: z.boolean().optional().default(false),
+      }))
+      .mutation(({ input }) => {
+        return { success: true, message: "Version updated successfully" };
+      }),
+  }),
   
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
