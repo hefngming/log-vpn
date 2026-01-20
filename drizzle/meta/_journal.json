@@ -36,6 +36,20 @@
       "when": 1768824732199,
       "tag": "0004_massive_annihilus",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1768825470092,
+      "tag": "0005_closed_human_torch",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1768868662670,
+      "tag": "0006_romantic_roulette",
+      "breakpoints": true
     }
   ]
 }

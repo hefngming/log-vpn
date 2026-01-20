@@ -11,7 +11,7 @@ export default function DownloadPage() {
       version: "1.0.0",
       size: "45 MB",
       requirements: "Windows 10/11 64-bit",
-      downloadUrl: "#",
+      downloadUrl: "https://github.com/log-vpn/client-windows/releases/latest/download/LogVPN-Setup.exe",
       features: ["一键连接", "智能选路", "流量统计", "开机自启"],
     },
     {
@@ -20,7 +20,7 @@ export default function DownloadPage() {
       version: "1.0.0",
       size: "38 MB",
       requirements: "macOS 11.0+",
-      downloadUrl: "#",
+      downloadUrl: "https://github.com/log-vpn/client-macos/releases/latest/download/LogVPN.dmg",
       features: ["一键连接", "智能选路", "流量统计", "菜单栏快捷操作"],
     },
     {
@@ -108,10 +108,12 @@ export default function DownloadPage() {
                         </li>
                       ))}
                     </ul>
-                    <Button className="w-full gradient-primary text-white border-0">
-                      <Download className="w-4 h-4 mr-2" />
-                      下载 {client.platform} 版
-                    </Button>
+                    <a href={client.downloadUrl} target="_blank" rel="noopener noreferrer" className="block">
+                      <Button className="w-full gradient-primary text-white border-0">
+                        <Download className="w-4 h-4 mr-2" />
+                        下载 {client.platform} 版
+                      </Button>
+                    </a>
                   </CardContent>
                 </Card>
               ))}

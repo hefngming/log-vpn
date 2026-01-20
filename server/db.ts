@@ -712,3 +712,59 @@ export async function getFreeTrialStats() {
     expiredDevices: expiredResult?.count || 0,
   };
 }
+
+
+export async function getSubscriptionById(subscriptionId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select()
+    .from(subscriptions)
+    .where(eq(subscriptions.id, subscriptionId))
+    .limit(1);
+  
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function updateSubscription(subscriptionId: number, data: Partial<typeof subscriptions.$inferInsert>) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.update(subscriptions)
+    .set(data)
+    .where(eq(subscriptions.id, subscriptionId));
+}
+
+export async function resetDailyTraffic(subscriptionId: number) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.update(subscriptions)
+    .set({
+      dailyTrafficUsed: 0,
+      lastDailyResetDate: new Date(),
+    })
+    .where(eq(subscriptions.id, subscriptionId));
+}
+
+export async function resetMonthlyTraffic(subscriptionId: number) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.update(subscriptions)
+    .set({
+      monthlyTrafficUsed: 0,
+      lastMonthlyResetDate: new Date(),
+    })
+    .where(eq(subscriptions.id, subscriptionId));
+}
+
+
+export async function updateUser(userId: number, data: Partial<typeof users.$inferInsert>) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.update(users)
+    .set(data)
+    .where(eq(users.id, userId));
+}
