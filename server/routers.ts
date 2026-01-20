@@ -12,6 +12,7 @@ import { notifyNewPaymentProof } from "./telegram";
 import { sendSubscriptionActivatedEmail } from "./email";
 import { syncNodesFromXui } from "./xui";
 import { freeTrialRouter } from "./freetrial-router";
+import { encryptNodeList } from "./nodeEncryption";
 
 // Admin procedure - requires admin role
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -204,6 +205,28 @@ export const appRouter = router({
         await db.deleteNode(input.id);
         return { success: true };
       }),
+    
+    getEncrypted: publicProcedure.query(async () => {
+      const nodes = await db.getActiveNodes();
+      const encryptedNodes = encryptNodeList(
+        nodes.map((node: any) => ({
+          id: node.id,
+          name: node.name,
+          protocol: node.protocol,
+          address: node.address,
+          port: node.port,
+          country: node.country,
+          countryCode: node.countryCode,
+          settings: node.settings,
+        }))
+      );
+      return {
+        success: true,
+        nodes: encryptedNodes,
+        count: encryptedNodes.length,
+        timestamp: Date.now(),
+      };
+    })
   }),
 
   // Plans
