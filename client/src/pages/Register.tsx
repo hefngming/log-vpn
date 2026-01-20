@@ -18,6 +18,7 @@ export default function Register() {
   const [referralValid, setReferralValid] = useState<boolean | null>(null);
   const [verificationCode, setVerificationCode] = useState('');
   const [countdown, setCountdown] = useState(0);
+  const [verificationError, setVerificationError] = useState('');
 
   const sendCodeMutation = trpc.auth.sendVerificationCode.useMutation({
     onSuccess: () => {
@@ -35,7 +36,12 @@ export default function Register() {
       setLocation('/');
     },
     onError: (error: any) => {
-      toast.error(error.message || '注册失败');
+      const errorMsg = error.message || '注册失败';
+      toast.error(errorMsg);
+      // 如果是验证码错误，显示在输入框下方
+      if (errorMsg.includes('验证码')) {
+        setVerificationError(errorMsg);
+      }
     },
   });
 
@@ -170,7 +176,10 @@ export default function Register() {
                     type="text"
                     placeholder="输入 6 位验证码"
                     value={verificationCode}
-                    onChange={(e) => setVerificationCode(e.target.value)}
+                    onChange={(e) => {
+                      setVerificationCode(e.target.value);
+                      setVerificationError(''); // 清除错误提示
+                    }}
                     className="pl-10"
                     maxLength={6}
                     required
@@ -189,6 +198,11 @@ export default function Register() {
               {countdown > 0 && (
                 <p className="text-xs text-muted-foreground">
                   未收到验证码？请检查垃圾邮件文件夹，或等待 {countdown} 秒后重新发送
+                </p>
+              )}
+              {verificationError && (
+                <p className="text-xs text-destructive">
+                  {verificationError}
                 </p>
               )}
             </div>
