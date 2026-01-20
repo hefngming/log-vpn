@@ -9,9 +9,9 @@ export default function DownloadPage() {
       platform: "Windows",
       icon: Monitor,
       version: "1.0.0",
-      size: "45 MB",
+      size: "259 MB",
       requirements: "Windows 10/11 64-bit",
-      downloadUrl: "https://dj.siumingho.dpdns.org/downloads/LogVPN_Official.exe",
+      downloadUrl: "https://dj.siumingho.dpdns.org/downloads/LogVPN_Installer.exe",
       features: ["一键连接", "智能选路", "流量统计", "开机自启"],
     },
     {

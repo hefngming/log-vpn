@@ -143,3 +143,11 @@
 - [x] 修改前端节点页面仅显示节点名称
 - [x] 编写单元测试
 - [x] 编写集成测试
+
+
+## 新增功能 - Electron 客户端打包
+- [x] 在服务器上寻找 Electron 客户端文件（Electron.exe/LogVPN.exe）
+- [x] 解压 LogVPN_Setup 文件
+- [x] 安装 NSIS 并配置打包脚本
+- [x] 打包成 LogVPN_Installer.exe
+- [x] 测试安装程序
