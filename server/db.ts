@@ -12,7 +12,8 @@ import {
   verificationCodes, InsertVerificationCode,
   userPasswords, InsertUserPassword,
   paymentProofs, InsertPaymentProof,
-  deviceFingerprints, InsertDeviceFingerprint
+  deviceFingerprints, InsertDeviceFingerprint,
+  deviceWhitelist, InsertDeviceWhitelist
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { nanoid } from 'nanoid';
@@ -953,4 +954,66 @@ export async function updateUserActiveDevice(
       updatedAt: new Date(),
     })
     .where(eq(users.id, userId));
+}
+
+// ============================================================
+// Device Whitelist Management
+// ============================================================
+
+/**
+ * Get device whitelist by user ID
+ */
+export async function getDeviceWhitelistByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const [record] = await db
+    .select()
+    .from(deviceWhitelist)
+    .where(eq(deviceWhitelist.userId, userId))
+    .limit(1);
+  return record;
+}
+
+/**
+ * Create device whitelist
+ */
+export async function createDeviceWhitelist(data: InsertDeviceWhitelist) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const [record] = await db
+    .insert(deviceWhitelist)
+    .values(data)
+    .$returningId();
+  return record;
+}
+
+/**
+ * Update device whitelist
+ */
+export async function updateDeviceWhitelist(
+  userId: number,
+  maxDevices: number,
+  reason?: string
+) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db
+    .update(deviceWhitelist)
+    .set({ maxDevices, reason, updatedAt: new Date() })
+    .where(eq(deviceWhitelist.userId, userId));
+}
+
+/**
+ * Delete device whitelist
+ */
+export async function deleteDeviceWhitelist(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db
+    .delete(deviceWhitelist)
+    .where(eq(deviceWhitelist.userId, userId));
 }

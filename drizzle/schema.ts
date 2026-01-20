@@ -241,3 +241,16 @@ export const deviceFingerprints = mysqlTable("deviceFingerprints", {
 
 export type DeviceFingerprint = typeof deviceFingerprints.$inferSelect;
 export type InsertDeviceFingerprint = typeof deviceFingerprints.$inferInsert;
+
+// Device Whitelist Table
+export const deviceWhitelist = mysqlTable('deviceWhitelist', {
+  id: int('id').autoincrement().primaryKey(),
+  userId: int('userId').notNull(),
+  maxDevices: int('maxDevices').notNull().default(1),
+  reason: text('reason'),
+  createdBy: int('createdBy').notNull(),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow().onUpdateNow(),
+});
+
+export type InsertDeviceWhitelist = typeof deviceWhitelist.$inferInsert;
