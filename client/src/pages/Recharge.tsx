@@ -49,9 +49,14 @@ export default function Recharge() {
 
   const uploadProofMutation = trpc.paymentProof.upload.useMutation({
     onSuccess: () => {
+      setIsUploading(false);
       setShowPaymentDialog(false);
-      setShowSuccessDialog(true);
       setUploadedImage(null);
+      toast.success("支付凭证提交成功！我们会在 24 小时内审核并激活您的订阅。", { duration: 5000 });
+      // Show success dialog after a short delay
+      setTimeout(() => {
+        setShowSuccessDialog(true);
+      }, 500);
     },
     onError: (error) => {
       toast.error(`提交失败: ${error.message}`);
@@ -461,7 +466,10 @@ export default function Recharge() {
               </p>
             </div>
             <Button
-              onClick={() => setShowSuccessDialog(false)}
+              onClick={() => {
+                setShowSuccessDialog(false);
+                window.location.href = '/dashboard';
+              }}
               className="w-full gradient-primary text-white border-0"
             >
               返回控制台
