@@ -192,3 +192,9 @@
 - [x] 检查 dj.siumingho.dpdns.org SSL 证书状态
 - [x] 配置 Nginx 反代指向前端
 - [x] 测试域名访问
+
+
+## 修复 - Nodes.tsx useAuth 导入错误和 SSL 证书自动续绿
+- [x] 修复 Nodes.tsx 中的 useAuth 导入路径
+- [x] 设置 SSL 证书自动续绿（Certbot 自动更新）
+- [x] 测试修复效果

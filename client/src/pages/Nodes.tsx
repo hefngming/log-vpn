@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+// Note: useAuth is imported from the _core hooks directory
 
 export default function Nodes() {
   const { isAuthenticated, loading, user } = useAuth();
