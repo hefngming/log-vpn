@@ -254,3 +254,22 @@ export const deviceWhitelist = mysqlTable('deviceWhitelist', {
 });
 
 export type InsertDeviceWhitelist = typeof deviceWhitelist.$inferInsert;
+
+
+// 推荐系统表
+export const referralCodes = mysqlTable('referral_codes', {
+  id: int('id').autoincrement().primaryKey(),
+  userId: int('user_id').notNull().references(() => users.id),
+  code: varchar('code', { length: 20 }).notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const referralRecords = mysqlTable('referral_records', {
+  id: int('id').autoincrement().primaryKey(),
+  referrerId: int('referrer_id').notNull().references(() => users.id),
+  referredId: int('referred_id').notNull().references(() => users.id),
+  referralCode: varchar('referral_code', { length: 20 }).notNull(),
+  referrerReward: int('referrer_reward').notNull().default(0), // 推荐人获得的流量奖励（MB）
+  referredReward: int('referred_reward').notNull().default(0), // 被推荐人获得的流量奖励（MB）
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});

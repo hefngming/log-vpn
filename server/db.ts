@@ -13,7 +13,9 @@ import {
   userPasswords, InsertUserPassword,
   paymentProofs, InsertPaymentProof,
   deviceFingerprints, InsertDeviceFingerprint,
-  deviceWhitelist, InsertDeviceWhitelist
+  deviceWhitelist, InsertDeviceWhitelist,
+  referralCodes,
+  referralRecords
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { nanoid } from 'nanoid';
@@ -1016,4 +1018,180 @@ export async function deleteDeviceWhitelist(userId: number) {
   await db
     .delete(deviceWhitelist)
     .where(eq(deviceWhitelist.userId, userId));
+}
+
+
+// ============ 推荐系统函数 ============
+
+/**
+ * 生成唯一的推荐码
+ */
+function generateReferralCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+/**
+ * 为用户创建推荐码
+ */
+export async function createReferralCode(userId: number): Promise<string> {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  
+  // 检查是否已有推荐码
+  const existing = await db
+    .select()
+    .from(referralCodes)
+    .where(eq(referralCodes.userId, userId))
+    .limit(1);
+  
+  if (existing.length > 0) {
+    return existing[0].code;
+  }
+
+  // 生成唯一推荐码
+  let code = generateReferralCode();
+  let attempts = 0;
+  while (attempts < 10) {
+    const duplicate = await db
+      .select()
+      .from(referralCodes)
+      .where(eq(referralCodes.code, code))
+      .limit(1);
+    
+    if (duplicate.length === 0) break;
+    code = generateReferralCode();
+    attempts++;
+  }
+
+  // 插入推荐码
+  await db.insert(referralCodes).values({
+    userId,
+    code,
+  });
+
+  return code;
+}
+
+/**
+ * 根据推荐码获取推荐人ID
+ */
+export async function getReferrerByCode(code: string): Promise<number | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db
+    .select()
+    .from(referralCodes)
+    .where(eq(referralCodes.code, code))
+    .limit(1);
+  
+  return result.length > 0 ? result[0].userId : null;
+}
+
+/**
+ * 记录推荐关系并发放奖励
+ */
+export async function recordReferral(
+  referrerId: number,
+  referredId: number,
+  referralCode: string
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  
+  const referrerReward = 5120; // 推荐人奖励 5GB
+  const referredReward = 2048; // 被推荐人奖励 2GB
+
+  // 记录推荐关系
+  await db.insert(referralRecords).values({
+    referrerId,
+    referredId,
+    referralCode,
+    referrerReward,
+    referredReward,
+  });
+
+  // 为推荐人增加流量
+  const referrerSub = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.userId, referrerId))
+    .limit(1);
+  
+  if (referrerSub.length > 0) {
+    await db
+      .update(subscriptions)
+      .set({
+        trafficLimit: (referrerSub[0].trafficLimit || 0) + referrerReward,
+      })
+      .where(eq(subscriptions.userId, referrerId));
+  }
+
+  // 为被推荐人增加流量
+  const referredSub = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.userId, referredId))
+    .limit(1);
+  
+  if (referredSub.length > 0) {
+    await db
+      .update(subscriptions)
+      .set({
+        trafficLimit: (referredSub[0].trafficLimit || 0) + referredReward,
+      })
+      .where(eq(subscriptions.userId, referredId));
+  }
+}
+
+/**
+ * 获取用户的推荐记录
+ */
+export async function getReferralRecords(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db
+    .select({
+      id: referralRecords.id,
+      referredUser: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      },
+      referralCode: referralRecords.referralCode,
+      referrerReward: referralRecords.referrerReward,
+      referredReward: referralRecords.referredReward,
+      createdAt: referralRecords.createdAt,
+    })
+    .from(referralRecords)
+    .leftJoin(users, eq(referralRecords.referredId, users.id))
+    .where(eq(referralRecords.referrerId, userId))
+    .orderBy(desc(referralRecords.createdAt));
+}
+
+/**
+ * 获取推荐统计
+ */
+export async function getReferralStats(userId: number) {
+  const db = await getDb();
+  if (!db) return { totalReferrals: 0, totalRewards: 0 };
+  
+  const records = await db
+    .select()
+    .from(referralRecords)
+    .where(eq(referralRecords.referrerId, userId));
+  
+  const totalReferrals = records.length;
+  const totalRewards = records.reduce((sum: number, r: any) => sum + r.referrerReward, 0);
+
+  return {
+    totalReferrals,
+    totalRewards,
+  };
 }
