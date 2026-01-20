@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Download, Monitor, Apple, Smartphone, Chrome, ArrowLeft, Check } from "lucide-react";
+import { Shield, Download, Monitor, Apple, Smartphone, ArrowLeft, Check, AlertCircle } from "lucide-react";
 import { Link } from "wouter";
 
 export default function DownloadPage() {
@@ -45,6 +45,18 @@ export default function DownloadPage() {
     },
   ];
 
+  const handleDownload = (url: string, platform: string) => {
+    if (url === "#") {
+      alert(`${platform} 版本敬请期待`);
+      return;
+    }
+    // 直接触发下载
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `LogVPN_${platform}.exe`;
+    link.click();
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -73,7 +85,7 @@ export default function DownloadPage() {
           <div className="text-center mb-12">
             <h1 className="text-3xl font-bold text-foreground mb-2">下载客户端</h1>
             <p className="text-muted-foreground">
-              选择适合您设备的客户端，享受极速安全的网络体验
+              选择适合您设备的官方客户端，享受极速安全的网络体验
             </p>
           </div>
 
@@ -108,12 +120,13 @@ export default function DownloadPage() {
                         </li>
                       ))}
                     </ul>
-                    <a href={client.downloadUrl} target="_blank" rel="noopener noreferrer" className="block">
-                      <Button className="w-full gradient-primary text-white border-0">
-                        <Download className="w-4 h-4 mr-2" />
-                        下载 {client.platform} 版
-                      </Button>
-                    </a>
+                    <Button 
+                      onClick={() => handleDownload(client.downloadUrl, client.platform)}
+                      className="w-full gradient-primary text-white border-0"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      下载 {client.platform} 版
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
@@ -170,42 +183,6 @@ export default function DownloadPage() {
             </div>
           </div>
 
-          {/* Third-party Clients */}
-          <div>
-            <h2 className="text-xl font-semibold text-foreground mb-6">第三方客户端</h2>
-            <Card className="bg-card border-border">
-              <CardContent className="p-6">
-                <p className="text-muted-foreground mb-6">
-                  您也可以使用以下第三方客户端，通过订阅链接连接我们的服务：
-                </p>
-                <div className="grid md:grid-cols-4 gap-4">
-                  {[
-                    { name: "v2rayN", platform: "Windows", url: "https://github.com/2dust/v2rayN" },
-                    { name: "ClashX Pro", platform: "macOS", url: "https://github.com/yichengchen/clashX" },
-                    { name: "v2rayNG", platform: "Android", url: "https://github.com/2dust/v2rayNG" },
-                    { name: "Shadowrocket", platform: "iOS", url: "#" },
-                  ].map((app) => (
-                    <a
-                      key={app.name}
-                      href={app.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block"
-                    >
-                      <Card className="bg-secondary/50 border-border hover:border-primary/50 transition-colors">
-                        <CardContent className="p-4 text-center">
-                          <Chrome className="w-8 h-8 text-primary mx-auto mb-2" />
-                          <p className="font-medium text-foreground">{app.name}</p>
-                          <p className="text-sm text-muted-foreground">{app.platform}</p>
-                        </CardContent>
-                      </Card>
-                    </a>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* Installation Guide */}
           <div className="mt-12">
             <Card className="bg-card border-border">
@@ -213,26 +190,64 @@ export default function DownloadPage() {
                 <CardTitle className="text-foreground">安装指南</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div>
-                    <h4 className="font-medium text-foreground mb-2">Windows 安装步骤</h4>
-                    <ol className="text-sm text-muted-foreground space-y-1">
-                      <li>1. 下载 Windows 客户端安装包</li>
-                      <li>2. 双击运行安装程序</li>
-                      <li>3. 按照提示完成安装</li>
-                      <li>4. 启动客户端并登录您的账号</li>
-                      <li>5. 选择节点并点击连接按钮</li>
+                    <h4 className="font-medium text-foreground mb-3 flex items-center gap-2">
+                      <Monitor className="w-5 h-5" />
+                      Windows 安装步骤
+                    </h4>
+                    <ol className="text-sm text-muted-foreground space-y-2 ml-7">
+                      <li>1. 点击上方"下载 Windows 版"按钮下载安装包</li>
+                      <li>2. 双击运行 LogVPN_Installer.exe 安装程序</li>
+                      <li>3. 按照提示完成安装（默认安装到 Program Files）</li>
+                      <li>4. 安装完成后自动启动客户端</li>
+                      <li>5. 登录您的账号并选择节点连接</li>
                     </ol>
                   </div>
                   <div>
-                    <h4 className="font-medium text-foreground mb-2">macOS 安装步骤</h4>
-                    <ol className="text-sm text-muted-foreground space-y-1">
-                      <li>1. 下载 macOS 客户端 DMG 文件</li>
-                      <li>2. 双击打开 DMG 文件</li>
-                      <li>3. 将应用拖入 Applications 文件夹</li>
-                      <li>4. 首次运行时右键选择"打开"</li>
+                    <h4 className="font-medium text-foreground mb-3 flex items-center gap-2">
+                      <Apple className="w-5 h-5" />
+                      macOS 安装步骤
+                    </h4>
+                    <ol className="text-sm text-muted-foreground space-y-2 ml-7">
+                      <li>1. 点击上方"下载 macOS 版"按钮下载安装包</li>
+                      <li>2. 双击打开下载的 DMG 文件</li>
+                      <li>3. 将 LogVPN 应用拖入 Applications 文件夹</li>
+                      <li>4. 首次运行时可能需要在"安全与隐私"中允许运行</li>
                       <li>5. 登录账号并开始使用</li>
                     </ol>
+                  </div>
+                  <div className="mt-6 p-4 bg-secondary/50 rounded-lg border border-border flex gap-3">
+                    <AlertCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-muted-foreground">
+                      <p className="font-medium text-foreground mb-1">重要提示</p>
+                      <p>安装包直接从我们的服务器下载，请确保网络连接稳定。如下载中断，可重新点击下载按钮继续。</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Troubleshooting */}
+          <div className="mt-8">
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="text-foreground">常见问题</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium text-foreground mb-2">Q: 下载速度很慢怎么办？</h4>
+                    <p className="text-sm text-muted-foreground">A: 安装包较大（259-261 MB），下载时间取决于您的网络速度。建议使用有线网络或 WiFi 下载以获得更快的速度。</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-foreground mb-2">Q: 安装后无法连接怎么办？</h4>
+                    <p className="text-sm text-muted-foreground">A: 请确保您已登录账号并选择了可用的节点。如仍无法连接，请检查您的网络连接或联系客服。</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-foreground mb-2">Q: 支持哪些协议？</h4>
+                    <p className="text-sm text-muted-foreground">A: 我们支持 VLESS、Trojan、Shadowsocks 和 VMess 等多种协议，客户端会自动识别并连接。</p>
                   </div>
                 </div>
               </CardContent>
