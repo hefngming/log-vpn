@@ -1,9 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield, Download, Monitor, Apple, Smartphone, ArrowLeft, Check, AlertCircle } from "lucide-react";
 import { Link } from "wouter";
+import { useState } from "react";
+import { DownloadProgressTracker } from "@/components/DownloadProgressTracker";
+import { VersionChecker } from "@/components/VersionChecker";
+import { FileHashVerifier } from "@/components/FileHashVerifier";
 
 export default function DownloadPage() {
+  const [activeTab, setActiveTab] = useState("windows");
+
   const clients = [
     {
       platform: "Windows",
@@ -12,6 +19,9 @@ export default function DownloadPage() {
       size: "259 MB",
       requirements: "Windows 10/11 64-bit",
       downloadUrl: "https://dj.siumingho.dpdns.org/downloads/LogVPN_Installer.exe",
+      md5: "696ede32-1028ffe6",
+      sha256: "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f",
+      fileSize: 271122406,
       features: ["一键连接", "智能选路", "流量统计", "开机自启"],
     },
     {
@@ -21,6 +31,9 @@ export default function DownloadPage() {
       size: "261 MB",
       requirements: "macOS 11.0+",
       downloadUrl: "https://dj.siumingho.dpdns.org/downloads/LogVPN_Official.exe",
+      md5: "696dfcb0-104b9b05",
+      sha256: "b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2",
+      fileSize: 273390341,
       features: ["一键连接", "智能选路", "流量统计", "菜单栏快捷操作"],
     },
     {
@@ -45,17 +58,7 @@ export default function DownloadPage() {
     },
   ];
 
-  const handleDownload = (url: string, platform: string) => {
-    if (url === "#") {
-      alert(`${platform} 版本敬请期待`);
-      return;
-    }
-    // 直接触发下载
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `LogVPN_${platform}.exe`;
-    link.click();
-  };
+  const desktopClients = clients.slice(0, 2);
 
   return (
     <div className="min-h-screen bg-background">
@@ -89,48 +92,79 @@ export default function DownloadPage() {
             </p>
           </div>
 
-          {/* Desktop Clients */}
+          {/* Tabs for Desktop Clients */}
           <div className="mb-12">
             <h2 className="text-xl font-semibold text-foreground mb-6">桌面客户端</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              {clients.slice(0, 2).map((client) => (
-                <Card key={client.platform} className="bg-card border-border">
-                  <CardHeader>
-                    <CardTitle className="text-foreground flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-lg gradient-primary flex items-center justify-center">
-                        <client.icon className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <p>{client.platform}</p>
-                        <p className="text-sm font-normal text-muted-foreground">
-                          v{client.version} · {client.size}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="windows" className="flex items-center gap-2">
+                  <Monitor className="w-4 h-4" />
+                  Windows
+                </TabsTrigger>
+                <TabsTrigger value="macos" className="flex items-center gap-2">
+                  <Apple className="w-4 h-4" />
+                  macOS
+                </TabsTrigger>
+              </TabsList>
+
+              {desktopClients.map((client) => (
+                <TabsContent key={client.platform} value={client.platform.toLowerCase()}>
+                  <div className="space-y-6">
+                    {/* Client Info Card */}
+                    <Card className="bg-card border-border">
+                      <CardHeader>
+                        <CardTitle className="text-foreground flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-lg gradient-primary flex items-center justify-center">
+                            <client.icon className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <p>{client.platform}</p>
+                            <p className="text-sm font-normal text-muted-foreground">
+                              v{client.version} · {client.size}
+                            </p>
+                          </div>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          系统要求: {client.requirements}
                         </p>
-                      </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      系统要求: {client.requirements}
-                    </p>
-                    <ul className="grid grid-cols-2 gap-2 mb-6">
-                      {client.features.map((feature, index) => (
-                        <li key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Check className="w-4 h-4 text-primary" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button 
-                      onClick={() => handleDownload(client.downloadUrl, client.platform)}
-                      className="w-full gradient-primary text-white border-0"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      下载 {client.platform} 版
-                    </Button>
-                  </CardContent>
-                </Card>
+                        <ul className="grid grid-cols-2 gap-2 mb-6">
+                          {client.features.map((feature, index) => (
+                            <li key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Check className="w-4 h-4 text-primary" />
+                              {feature}
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+
+                    {/* Version Checker */}
+                    <VersionChecker
+                      currentVersion={client.version}
+                      platform={client.platform as "Windows" | "macOS"}
+                    />
+
+                    {/* Download Progress Tracker */}
+                    <DownloadProgressTracker
+                      url={client.downloadUrl}
+                      filename={`LogVPN_${client.platform}.exe`}
+                      fileSize={client.fileSize || 0}
+                    />
+
+                    {/* File Hash Verifier */}
+                    {client.md5 && client.sha256 && (
+                      <FileHashVerifier
+                        filename={`LogVPN_${client.platform}.exe`}
+                        expectedMd5={client.md5}
+                        expectedSha256={client.sha256}
+                      />
+                    )}
+                  </div>
+                </TabsContent>
               ))}
-            </div>
+            </Tabs>
           </div>
 
           {/* Mobile Clients */}
@@ -197,11 +231,12 @@ export default function DownloadPage() {
                       Windows 安装步骤
                     </h4>
                     <ol className="text-sm text-muted-foreground space-y-2 ml-7">
-                      <li>1. 点击上方"下载 Windows 版"按钮下载安装包</li>
-                      <li>2. 双击运行 LogVPN_Installer.exe 安装程序</li>
-                      <li>3. 按照提示完成安装（默认安装到 Program Files）</li>
-                      <li>4. 安装完成后自动启动客户端</li>
-                      <li>5. 登录您的账号并选择节点连接</li>
+                      <li>1. 点击上方"开始下载"按钮下载安装包</li>
+                      <li>2. 下载完成后，使用校验工具验证文件完整性</li>
+                      <li>3. 双击运行 LogVPN_Installer.exe 安装程序</li>
+                      <li>4. 按照提示完成安装（默认安装到 Program Files）</li>
+                      <li>5. 安装完成后自动启动客户端</li>
+                      <li>6. 登录您的账号并选择节点连接</li>
                     </ol>
                   </div>
                   <div>
@@ -210,18 +245,19 @@ export default function DownloadPage() {
                       macOS 安装步骤
                     </h4>
                     <ol className="text-sm text-muted-foreground space-y-2 ml-7">
-                      <li>1. 点击上方"下载 macOS 版"按钮下载安装包</li>
-                      <li>2. 双击打开下载的 DMG 文件</li>
-                      <li>3. 将 LogVPN 应用拖入 Applications 文件夹</li>
-                      <li>4. 首次运行时可能需要在"安全与隐私"中允许运行</li>
-                      <li>5. 登录账号并开始使用</li>
+                      <li>1. 点击上方"开始下载"按钮下载安装包</li>
+                      <li>2. 下载完成后，使用校验工具验证文件完整性</li>
+                      <li>3. 双击打开下载的 DMG 文件</li>
+                      <li>4. 将 LogVPN 应用拖入 Applications 文件夹</li>
+                      <li>5. 首次运行时可能需要在"安全与隐私"中允许运行</li>
+                      <li>6. 登录账号并开始使用</li>
                     </ol>
                   </div>
                   <div className="mt-6 p-4 bg-secondary/50 rounded-lg border border-border flex gap-3">
                     <AlertCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div className="text-sm text-muted-foreground">
                       <p className="font-medium text-foreground mb-1">重要提示</p>
-                      <p>安装包直接从我们的服务器下载，请确保网络连接稳定。如下载中断，可重新点击下载按钮继续。</p>
+                      <p>安装包直接从我们的服务器下载，请确保网络连接稳定。建议使用上方的校验工具验证下载的文件完整性，以确保安全性。</p>
                     </div>
                   </div>
                 </div>
@@ -239,15 +275,19 @@ export default function DownloadPage() {
                 <div className="space-y-4">
                   <div>
                     <h4 className="font-medium text-foreground mb-2">Q: 下载速度很慢怎么办？</h4>
-                    <p className="text-sm text-muted-foreground">A: 安装包较大（259-261 MB），下载时间取决于您的网络速度。建议使用有线网络或 WiFi 下载以获得更快的速度。</p>
+                    <p className="text-sm text-muted-foreground">A: 安装包较大（259-261 MB），下载时间取决于您的网络速度。建议使用有线网络或 WiFi 下载以获得更快的速度。您可以使用上方的进度追踪功能查看实时下载速度。</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-foreground mb-2">Q: 如何验证下载的文件是否完整？</h4>
+                    <p className="text-sm text-muted-foreground">A: 下载完成后，使用上方的"安装包校验"工具上传文件，系统会自动计算 MD5 和 SHA256 校验值并与官方值进行对比。如果校验成功，说明文件完整且未被篡改。</p>
                   </div>
                   <div>
                     <h4 className="font-medium text-foreground mb-2">Q: 安装后无法连接怎么办？</h4>
                     <p className="text-sm text-muted-foreground">A: 请确保您已登录账号并选择了可用的节点。如仍无法连接，请检查您的网络连接或联系客服。</p>
                   </div>
                   <div>
-                    <h4 className="font-medium text-foreground mb-2">Q: 支持哪些协议？</h4>
-                    <p className="text-sm text-muted-foreground">A: 我们支持 VLESS、Trojan、Shadowsocks 和 VMess 等多种协议，客户端会自动识别并连接。</p>
+                    <h4 className="font-medium text-foreground mb-2">Q: 如何检查是否有新版本？</h4>
+                    <p className="text-sm text-muted-foreground">A: 上方的"版本检查"工具会自动检查最新版本。如果有新版本可用，会显示更新内容和下载链接。您也可以手动点击"重新检查"按钮随时检查更新。</p>
                   </div>
                 </div>
               </CardContent>

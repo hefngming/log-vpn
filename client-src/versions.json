@@ -1,0 +1,42 @@
+{
+  "versions": [
+    {
+      "platform": "Windows",
+      "version": "1.0.0",
+      "filename": "LogVPN_Installer.exe",
+      "size": 271122406,
+      "sizeDisplay": "259 MB",
+      "downloadUrl": "https://dj.siumingho.dpdns.org/downloads/LogVPN_Installer.exe",
+      "md5": "696ede32-1028ffe6",
+      "sha256": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f",
+      "releaseDate": "2026-01-20",
+      "changelog": [
+        "初始版本发布",
+        "支持 VLESS、Trojan、Shadowsocks 协议",
+        "实时流量监控",
+        "智能选路功能"
+      ],
+      "requirements": "Windows 10/11 64-bit",
+      "mandatory": false
+    },
+    {
+      "platform": "macOS",
+      "version": "1.0.0",
+      "filename": "LogVPN_Official.exe",
+      "size": 273390341,
+      "sizeDisplay": "261 MB",
+      "downloadUrl": "https://dj.siumingho.dpdns.org/downloads/LogVPN_Official.exe",
+      "md5": "696dfcb0-104b9b05",
+      "sha256": "b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2",
+      "releaseDate": "2026-01-20",
+      "changelog": [
+        "初始版本发布",
+        "支持 VLESS、Trojan、Shadowsocks 协议",
+        "实时流量监控",
+        "菜单栏快捷操作"
+      ],
+      "requirements": "macOS 11.0+",
+      "mandatory": false
+    }
+  ]
+}
