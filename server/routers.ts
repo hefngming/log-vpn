@@ -497,14 +497,7 @@ export const appRouter = router({
           status: 'pending',
         });
         
-        // Send Telegram notification to admin
-        await notifyNewPaymentProof(
-          ctx.user.email || ctx.user.name || `User #${ctx.user.id}`,
-          input.planName,
-          input.amount
-        );
-        
-        // 发送付费成功通知（包含订单号）
+        // 发送付费成功 Telegram 通知（包含订单号和审核链接）
         const orderNo = `PROOF-${proofId}`;
         await notifyPaymentSuccess(
           ctx.user.email || ctx.user.name || `User #${ctx.user.id}`,
