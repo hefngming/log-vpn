@@ -16,7 +16,9 @@ import {
   Calendar,
   DollarSign,
   Loader2,
-  Eye
+  Eye,
+  CheckSquare,
+  Square
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -43,6 +45,9 @@ export default function AdminReview() {
   const [days, setDays] = useState(30);
   const [trafficGB, setTrafficGB] = useState(200);
   const [adminNote, setAdminNote] = useState("");
+  const [selectedProofIds, setSelectedProofIds] = useState<number[]>([]);
+  const [showBatchApproveDialog, setShowBatchApproveDialog] = useState(false);
+  const [showBatchRejectDialog, setShowBatchRejectDialog] = useState(false);
 
   const { data: pendingProofs, isLoading: loadingPending, refetch: refetchPending } = trpc.admin.getPendingProofs.useQuery();
   const { data: allProofs, isLoading: loadingAll, refetch: refetchAll } = trpc.admin.getAllProofs.useQuery();
@@ -70,6 +75,38 @@ export default function AdminReview() {
     },
     onError: (error) => {
       toast.error(`操作失败: ${error.message}`);
+    },
+  });
+
+  const batchApproveMutation = trpc.admin.batchApproveProofs.useMutation({
+    onSuccess: (result) => {
+      toast.success(`批量审核完成：成功 ${result.success} 个，失败 ${result.failed} 个`);
+      if (result.errors.length > 0) {
+        result.errors.forEach(error => toast.error(error));
+      }
+      setShowBatchApproveDialog(false);
+      setSelectedProofIds([]);
+      refetchPending();
+      refetchAll();
+    },
+    onError: (error) => {
+      toast.error(`批量审核失败: ${error.message}`);
+    },
+  });
+
+  const batchRejectMutation = trpc.admin.batchRejectProofs.useMutation({
+    onSuccess: (result) => {
+      toast.success(`批量拒绝完成：成功 ${result.success} 个，失败 ${result.failed} 个`);
+      if (result.errors.length > 0) {
+        result.errors.forEach(error => toast.error(error));
+      }
+      setShowBatchRejectDialog(false);
+      setSelectedProofIds([]);
+      refetchPending();
+      refetchAll();
+    },
+    onError: (error) => {
+      toast.error(`批量拒绝失败: ${error.message}`);
     },
   });
 
@@ -106,7 +143,60 @@ export default function AdminReview() {
     if (!selectedProof) return;
     rejectMutation.mutate({
       proofId: selectedProof.id,
-      adminNote: adminNote || undefined,
+      adminNote,
+    });
+  };
+
+  const handleSelectProof = (proofId: number) => {
+    setSelectedProofIds(prev => 
+      prev.includes(proofId) 
+        ? prev.filter(id => id !== proofId)
+        : [...prev, proofId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (!pendingProofs) return;
+    if (selectedProofIds.length === pendingProofs.length) {
+      setSelectedProofIds([]);
+    } else {
+      setSelectedProofIds(pendingProofs.map(p => p.id));
+    }
+  };
+
+  const handleBatchApprove = () => {
+    if (selectedProofIds.length === 0) {
+      toast.error("请先选择要审核的凭证");
+      return;
+    }
+    setDays(30);
+    setTrafficGB(200);
+    setAdminNote("");
+    setShowBatchApproveDialog(true);
+  };
+
+  const handleBatchReject = () => {
+    if (selectedProofIds.length === 0) {
+      toast.error("请先选择要拒绝的凭证");
+      return;
+    }
+    setAdminNote("");
+    setShowBatchRejectDialog(true);
+  };
+
+  const confirmBatchApprove = () => {
+    batchApproveMutation.mutate({
+      proofIds: selectedProofIds,
+      days,
+      trafficLimit: trafficGB * 1024 * 1024 * 1024,
+      adminNote,
+    });
+  };
+
+  const confirmBatchReject = () => {
+    batchRejectMutation.mutate({
+      proofIds: selectedProofIds,
+      adminNote,
     });
   };
 
@@ -133,10 +223,26 @@ export default function AdminReview() {
     });
   };
 
-  const ProofCard = ({ proof, showActions = true }: { proof: PaymentProof; showActions?: boolean }) => (
+  const ProofCard = ({ proof, showActions = true, showCheckbox = false }: { proof: PaymentProof; showActions?: boolean; showCheckbox?: boolean }) => (
     <Card className="bg-card border-border">
       <CardContent className="p-4">
         <div className="flex gap-4">
+          {/* Checkbox */}
+          {showCheckbox && (
+            <div className="flex items-start pt-1">
+              <button
+                onClick={() => handleSelectProof(proof.id)}
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
+                {selectedProofIds.includes(proof.id) ? (
+                  <CheckSquare className="w-5 h-5 text-primary" />
+                ) : (
+                  <Square className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+          )}
+          
           {/* Image Preview */}
           <div 
             className="w-24 h-24 bg-secondary rounded-lg overflow-hidden cursor-pointer flex-shrink-0"
@@ -279,11 +385,54 @@ export default function AdminReview() {
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
             ) : pendingProofs && pendingProofs.length > 0 ? (
-              <div className="space-y-4">
-                {pendingProofs.map((proof) => (
-                  <ProofCard key={proof.id} proof={proof as PaymentProof} />
-                ))}
-              </div>
+              <>
+                {/* Batch Actions */}
+                <div className="flex items-center justify-between bg-card border border-border rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleSelectAll}
+                      className="text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {selectedProofIds.length === pendingProofs.length ? (
+                        <CheckSquare className="w-5 h-5 text-primary" />
+                      ) : (
+                        <Square className="w-5 h-5" />
+                      )}
+                    </button>
+                    <span className="text-sm text-muted-foreground">
+                      {selectedProofIds.length > 0 ? `已选择 ${selectedProofIds.length} 个` : '全选'}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-green-500/50 text-green-500 hover:bg-green-500/10"
+                      onClick={handleBatchApprove}
+                      disabled={selectedProofIds.length === 0}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-1" />
+                      批量通过
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-red-500/50 text-red-500 hover:bg-red-500/10"
+                      onClick={handleBatchReject}
+                      disabled={selectedProofIds.length === 0}
+                    >
+                      <XCircle className="w-4 h-4 mr-1" />
+                      批量拒绝
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  {pendingProofs.map((proof) => (
+                    <ProofCard key={proof.id} proof={proof as PaymentProof} showCheckbox={true} />
+                  ))}
+                </div>
+              </>
             ) : (
               <Card className="bg-card border-border">
                 <CardContent className="p-12 text-center">
@@ -450,11 +599,122 @@ export default function AdminReview() {
               />
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>{selectedProof.userEmail || `用户 #${selectedProof.userId}`}</span>
-                <span>{selectedProof.planName} - ¥{selectedProof.amount}</span>
+                <span>{selectedProof.planName} - ￥{selectedProof.amount}</span>
                 <span>{formatDate(selectedProof.createdAt)}</span>
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch Approve Dialog */}
+      <Dialog open={showBatchApproveDialog} onOpenChange={setShowBatchApproveDialog}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">批量激活订阅</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-secondary/50 rounded-lg p-4">
+              <p className="text-sm text-muted-foreground">将激活 {selectedProofIds.length} 个用户的订阅</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>有效期（天）</Label>
+                <Input
+                  type="number"
+                  value={days}
+                  onChange={(e) => setDays(parseInt(e.target.value) || 30)}
+                  className="bg-secondary border-border"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>流量限制（GB）</Label>
+                <Input
+                  type="number"
+                  value={trafficGB}
+                  onChange={(e) => setTrafficGB(parseInt(e.target.value) || 200)}
+                  className="bg-secondary border-border"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>备注（可选）</Label>
+              <Input
+                value={adminNote}
+                onChange={(e) => setAdminNote(e.target.value)}
+                placeholder="添加审核备注..."
+                className="bg-secondary border-border"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBatchApproveDialog(false)}>
+              取消
+            </Button>
+            <Button 
+              className="bg-green-600 hover:bg-green-700"
+              onClick={confirmBatchApprove}
+              disabled={batchApproveMutation.isPending}
+            >
+              {batchApproveMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  处理中...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  确认激活
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch Reject Dialog */}
+      <Dialog open={showBatchRejectDialog} onOpenChange={setShowBatchRejectDialog}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">批量拒绝凭证</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-secondary/50 rounded-lg p-4">
+              <p className="text-sm text-muted-foreground">将拒绝 {selectedProofIds.length} 个支付凭证</p>
+            </div>
+            <div className="space-y-2">
+              <Label>拒绝原因（可选）</Label>
+              <Input
+                value={adminNote}
+                onChange={(e) => setAdminNote(e.target.value)}
+                placeholder="说明拒绝原因..."
+                className="bg-secondary border-border"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBatchRejectDialog(false)}>
+              取消
+            </Button>
+            <Button 
+              variant="outline"
+              className="border-red-500/50 text-red-500 hover:bg-red-500/10"
+              onClick={confirmBatchReject}
+              disabled={batchRejectMutation.isPending}
+            >
+              {batchRejectMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  处理中...
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4 mr-2" />
+                  确认拒绝
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </DashboardLayout>

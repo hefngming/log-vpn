@@ -595,6 +595,90 @@ export const appRouter = router({
         
         return { success: true };
       }),
+    
+    // Batch approve payment proofs
+    batchApproveProofs: adminProcedure
+      .input(z.object({
+        proofIds: z.array(z.number()),
+        days: z.number().default(30),
+        trafficLimit: z.number().default(1073741824 * 200), // 200GB default
+        adminNote: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const results = {
+          success: 0,
+          failed: 0,
+          errors: [] as string[],
+        };
+        
+        for (const proofId of input.proofIds) {
+          try {
+            const proof = await db.getPaymentProofById(proofId);
+            if (!proof) {
+              results.failed++;
+              results.errors.push(`凭证 ${proofId} 不存在`);
+              continue;
+            }
+            
+            if (proof.status !== 'pending') {
+              results.failed++;
+              results.errors.push(`凭证 ${proofId} 已处理`);
+              continue;
+            }
+            
+            // Update proof status
+            await db.updatePaymentProofStatus(proofId, 'approved', ctx.user.id, input.adminNote);
+            
+            // Activate user subscription
+            await db.activateSubscription(proof.userId, proof.planName, input.days, input.trafficLimit);
+            
+            // Send confirmation email if user has email
+            if (proof.userEmail) {
+              await sendSubscriptionActivatedEmail(proof.userEmail, proof.planName, input.days);
+            }
+            
+            results.success++;
+          } catch (error) {
+            results.failed++;
+            results.errors.push(`凭证 ${proofId} 处理失败: ${error instanceof Error ? error.message : '未知错误'}`);
+          }
+        }
+        
+        return results;
+      }),
+    
+    // Batch reject payment proofs
+    batchRejectProofs: adminProcedure
+      .input(z.object({
+        proofIds: z.array(z.number()),
+        adminNote: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const results = {
+          success: 0,
+          failed: 0,
+          errors: [] as string[],
+        };
+        
+        for (const proofId of input.proofIds) {
+          try {
+            const proof = await db.getPaymentProofById(proofId);
+            if (!proof) {
+              results.failed++;
+              results.errors.push(`凭证 ${proofId} 不存在`);
+              continue;
+            }
+            
+            await db.updatePaymentProofStatus(proofId, 'rejected', ctx.user.id, input.adminNote);
+            results.success++;
+          } catch (error) {
+            results.failed++;
+            results.errors.push(`凭证 ${proofId} 处理失败: ${error instanceof Error ? error.message : '未知错误'}`);
+          }
+        }
+        
+        return results;
+      }),
   }),
 
   // Traffic reporting (for client)
