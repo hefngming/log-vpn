@@ -435,12 +435,20 @@
 ## LogVPN 客户端开发（基于 v2rayN）
 - [x] 准备开发文档（LOGVPN_CLIENT_DEVELOPMENT_GUIDE.md）
 - [x] 准备 API 集成配置文件（client-api-config.json）
-- [ ] 准备 v2rayN 源代码和开发环境
-- [ ] 品牌定制（LogVPN 名称、图标、启动画面）
-- [ ] 实现自动登录功能（OAuth 集成）
-- [ ] 实现节点自动获取（调用 nodes.getEncrypted API）
-- [ ] 实现节点解密和配置导入
-- [ ] 实现一键连接功能
-- [ ] 实现流量统计和上报（调用 traffic.log API）
-- [ ] 编译 Windows 安装程序（NSIS）
-- [ ] 上传到服务器并测试下载
+- [x] 实现设备指纹识别功能（DeviceFingerprintService.cs）
+- [ ] 实现防共享功能（一账号一设备在线）
+- [ ] 实现自动更新功能（UpdateService.cs）
+- [ ] 实现 OAuth 登录功能（LoginForm.cs）
+- [ ] 实现节点自动获取和解密（ApiClient.cs + NodeDecryptor.cs）
+- [ ] 实现流量统计和上报（TrafficMonitor.cs）
+- [ ] 品牌定制（修改 AssemblyInfo.cs、替换图标）
+- [ ] 创建 NSIS 安装程序脚本
+- [ ] 编译和打包测试
+
+## 客户端编译和部署（GitHub Actions）
+- [x] 创建完整的 v2rayN 二次开发源代码包
+- [x] 创建 GitHub Actions 自动编译工作流（.github/workflows/build.yml）
+- [x] 配置自动上传到服务器的部署脚本
+- [x] 更新前端下载页面连接到服务器上的安装程序
+- [ ] 测试完整的编译和部署流程
+- [x] 编写客户端使用文档

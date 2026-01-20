@@ -18,11 +18,11 @@ export default function DownloadPage() {
       version: "1.0.0",
       size: "178 MB",
       requirements: "Windows 10/11 64-bit",
-      downloadUrl: "https://dj.siumingho.dpdns.org/downloads/LogVPN_1.0.0_Setup.exe",
-      md5: "electron-vpn-client-windows",
-      sha256: "electron-sing-box-client-windows",
-      fileSize: 186646528,
-      features: ["设备指纹识别", "节点延迟测试", "流量监控", "智能推荐节点", "自动更新"],
+      downloadUrl: "https://dj.siumingho.dpdns.org/downloads/LogVPN_Setup.exe",
+      md5: "v2rayn-logvpn-client-windows",
+      sha256: "v2rayn-logvpn-client-windows-sha256",
+      fileSize: 50000000,
+      features: ["OAuth 自动登录", "自动获取节点", "一键连接", "流量统计上报", "设备指纹防共享", "自动更新"],
     },
     {
       platform: "macOS",
@@ -30,11 +30,12 @@ export default function DownloadPage() {
       version: "1.0.0",
       size: "178 MB",
       requirements: "macOS 11.0+ (Intel & Apple Silicon)",
-      downloadUrl: "https://dj.siumingho.dpdns.org/downloads/LogVPN_1.0.0_x64.dmg",
-      md5: "electron-vpn-client-macos",
-      sha256: "electron-sing-box-client-macos",
-      fileSize: 186646528,
-      features: ["设备指纹识别", "节点延迟测试", "流量监控", "智能推荐节点", "自动更新"],
+      downloadUrl: "#",
+      md5: "",
+      sha256: "",
+      fileSize: 0,
+      features: ["OAuth 自动登录", "自动获取节点", "一键连接", "流量统计上报", "设备指纹防共享", "自动更新"],
+      comingSoon: true,
     },
     {
       platform: "Android",
@@ -233,7 +234,7 @@ export default function DownloadPage() {
                     <ol className="text-sm text-muted-foreground space-y-2 ml-7">
                       <li>1. 点击上方"开始下载"按钮下载安装包</li>
                       <li>2. 下载完成后，使用校验工具验证文件完整性</li>
-                      <li>3. 双击运行 LogVPN_Installer.exe 安装程序</li>
+                      <li>3. 双击运行 LogVPN_Setup.exe 安装程序</li>
                       <li>4. 按照提示完成安装（默认安装到 Program Files）</li>
                       <li>5. 安装完成后自动启动客户端</li>
                       <li>6. 登录您的账号并选择节点连接</li>
@@ -275,7 +276,7 @@ export default function DownloadPage() {
                 <div className="space-y-4">
                   <div>
                     <h4 className="font-medium text-foreground mb-2">Q: 下载速度很慢怎么办？</h4>
-                    <p className="text-sm text-muted-foreground">A: 安装包较大（259-261 MB），下载时间取决于您的网络速度。建议使用有线网络或 WiFi 下载以获得更快的速度。您可以使用上方的进度追踪功能查看实时下载速度。</p>
+                    <p className="text-sm text-muted-foreground">A: 安装包大小约 50 MB，下载时间取决于您的网络速度。建议使用有线网络或 WiFi 下载以获得更快的速度。您可以使用上方的进度追踪功能查看实时下载速度。</p>
                   </div>
                   <div>
                     <h4 className="font-medium text-foreground mb-2">Q: 如何验证下载的文件是否完整？</h4>

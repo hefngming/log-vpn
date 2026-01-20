@@ -1,0 +1,72 @@
+name: Build and Deploy LogVPN Client
+
+on:
+  push:
+    branches: [ main, master ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    
+    - name: Setup .NET Framework
+      uses: microsoft/setup-msbuild@v1.1
+    
+    - name: Restore NuGet packages
+      run: nuget restore v2rayN.sln
+    
+    - name: Build solution
+      run: msbuild v2rayN.sln /p:Configuration=Release /p:Platform="Any CPU"
+    
+    - name: Install NSIS
+      run: |
+        choco install nsis -y
+        
+    - name: Build installer
+      run: |
+        makensis LogVPN_Installer.nsi
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: LogVPN-Windows-Installer
+        path: LogVPN_Setup.exe
+    
+    - name: Deploy to server
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        SERVER_USER: ${{ secrets.SERVER_USER }}
+      run: |
+        # 配置 SSH
+        mkdir -p ~/.ssh
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H $SERVER_HOST >> ~/.ssh/known_hosts
+        
+        # 上传安装程序到服务器
+        scp LogVPN_Setup.exe $SERVER_USER@$SERVER_HOST:/home/ubuntu/log-vpn/client/public/downloads/
+        
+        # 更新版本信息
+        ssh $SERVER_USER@$SERVER_HOST "cd /home/ubuntu/log-vpn && echo '{\"version\":\"$(git describe --tags --always)\",\"buildDate\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}' > client/public/downloads/version.json"
+    
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: LogVPN_Setup.exe
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
