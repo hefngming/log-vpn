@@ -14,6 +14,7 @@ import { syncNodesFromXui } from "./xui";
 import { freeTrialRouter } from "./freetrial-router";
 import { encryptNodeList } from "./nodeEncryption";
 import { checkForUpdate, getLatestVersion, getAllVersions, getVersionInfo } from "./versionManagement";
+import { getUserTrafficUsage } from "./trafficQuery";
 
 // Admin procedure - requires admin role
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -468,6 +469,14 @@ export const appRouter = router({
 
   // Traffic reporting (for client)
   traffic: router({
+    getUsage: protectedProcedure.query(async ({ ctx }) => {
+      const usage = await getUserTrafficUsage(ctx.user.id.toString());
+      if (!usage) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: '未找到订阅信息' });
+      }
+      return usage;
+    }),
+    
     report: protectedProcedure
       .input(z.object({
         upload: z.number(),
