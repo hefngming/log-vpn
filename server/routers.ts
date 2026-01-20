@@ -13,6 +13,7 @@ import { sendSubscriptionActivatedEmail } from "./email";
 import { syncNodesFromXui } from "./xui";
 import { freeTrialRouter } from "./freetrial-router";
 import { deviceRouter } from "./device-router";
+import { referralRouter } from "./referral-router";
 import { encryptNodeList } from "./nodeEncryption";
 import { checkForUpdate, getLatestVersion, getAllVersions, getVersionInfo } from "./versionManagement";
 import { getUserTrafficUsage } from "./trafficQuery";
@@ -28,6 +29,7 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 export const appRouter = router({
   system: systemRouter,
   freeTrial: freeTrialRouter,
+  referral: referralRouter,
   device: deviceRouter,
   
   download: router({

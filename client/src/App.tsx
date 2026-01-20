@@ -15,6 +15,7 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminNodes from "./pages/admin/AdminNodes";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminReview from "./pages/admin/AdminReview";
+import Referral from "./pages/Referral";
 
 function Router() {
   return (
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/recharge" component={Recharge} />
       <Route path="/download" component={Download} />
       <Route path="/nodes" component={Nodes} />
+      <Route path="/referral" component={Referral} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/users" component={AdminUsers} />
       <Route path="/admin/orders" component={AdminOrders} />

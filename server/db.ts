@@ -1104,8 +1104,8 @@ export async function recordReferral(
   const db = await getDb();
   if (!db) throw new Error('Database not available');
   
-  const referrerReward = 5120; // 推荐人奖励 5GB
-  const referredReward = 2048; // 被推荐人奖励 2GB
+  const referrerReward = 1024; // 推荐人奖励 1GB
+  const referredReward = 1024; // 被推荐人奖励 1GB
 
   // 记录推荐关系
   await db.insert(referralRecords).values({
