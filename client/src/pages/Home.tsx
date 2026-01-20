@@ -25,6 +25,13 @@ export default function Home() {
                 下载客户端
               </Button>
             </Link>
+            {isAuthenticated && (
+              <Link href="/referral">
+                <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+                  邀请好友
+                </Button>
+              </Link>
+            )}
             {isAuthenticated ? (
               <Link href="/dashboard">
                 <Button className="gradient-primary text-white border-0">
@@ -32,11 +39,18 @@ export default function Home() {
                 </Button>
               </Link>
             ) : (
-              <a href={getLoginUrl()}>
-                <Button className="gradient-primary text-white border-0">
-                  登录 / 注册
-                </Button>
-              </a>
+              <>
+                <Link href="/register">
+                  <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
+                    注册
+                  </Button>
+                </Link>
+                <a href={getLoginUrl()}>
+                  <Button className="gradient-primary text-white border-0">
+                    登录
+                  </Button>
+                </a>
+              </>
             )}
           </div>
         </div>

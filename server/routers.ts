@@ -114,6 +114,7 @@ export const appRouter = router({
       .input(z.object({
         email: z.string().email(),
         password: z.string().min(6),
+        referralCode: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const existingUser = await db.getUserByEmail(input.email);
@@ -127,6 +128,20 @@ export const appRouter = router({
           passwordHash,
           role: 'user',
         });
+
+        // 处理推荐码
+        if (input.referralCode) {
+          try {
+            // 首先验证推荐码并获取推荐人 ID
+            const referrerId = await db.getReferrerByCode(input.referralCode);
+            if (referrerId) {
+              await db.recordReferral(referrerId, newUser.id, input.referralCode);
+            }
+          } catch (error) {
+            // 推荐码处理失败不影响注册
+            console.error('推荐码处理失败:', error);
+          }
+        }
 
         return {
           success: true,

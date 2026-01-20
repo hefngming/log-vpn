@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Shield, Download, Upload, Clock, Globe, CreditCard, Settings, LogOut } from "lucide-react";
+import { Shield, Download, Upload, Clock, Globe, CreditCard, Settings, LogOut, Gift } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 
@@ -119,17 +119,19 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </Link>
-            <Card className="bg-card border-border hover:border-primary/50 transition-colors cursor-pointer">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Settings className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">账户设置</p>
-                  <p className="text-sm text-muted-foreground">管理账户</p>
-                </div>
-              </CardContent>
-            </Card>
+            <Link href="/referral">
+              <Card className="bg-card border-border hover:border-primary/50 transition-colors cursor-pointer">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Gift className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">邀请好友</p>
+                    <p className="text-sm text-muted-foreground">获得流量奖励</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
 
           {/* Subscription Status */}
