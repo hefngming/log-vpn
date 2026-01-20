@@ -28,6 +28,19 @@ export const appRouter = router({
   system: systemRouter,
   freeTrial: freeTrialRouter,
   
+  download: router({
+    getFile: publicProcedure
+      .input(z.object({ filename: z.string() }))
+      .query(async ({ input }) => {
+        // 返回下载链接，前端会直接访问
+        const baseUrl = 'https://dj.siumingho.dpdns.org/downloads';
+        return {
+          url: `${baseUrl}/${input.filename}`,
+          filename: input.filename,
+        };
+      }),
+  }),
+  
   version: router({
     check: publicProcedure
       .input(z.object({ currentVersion: z.string() }))
