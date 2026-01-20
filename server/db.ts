@@ -812,3 +812,145 @@ export async function createUserWithPassword(data: {
 }) {
   return createUser(data);
 }
+
+// ============================================================
+// Device Fingerprint Management
+// ============================================================
+
+/**
+ * Get device fingerprint by fingerprint string
+ */
+export async function getDeviceFingerprintByFingerprint(fingerprint: string) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const [record] = await db
+    .select()
+    .from(deviceFingerprints)
+    .where(eq(deviceFingerprints.fingerprint, fingerprint))
+    .limit(1);
+  return record;
+}
+
+/**
+ * Get all device fingerprints for a user
+ */
+export async function getDeviceFingerprintsByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db
+    .select()
+    .from(deviceFingerprints)
+    .where(eq(deviceFingerprints.userId, userId));
+}
+
+/**
+ * Get active device fingerprint for a user
+ */
+export async function getActiveDeviceFingerprintByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const [record] = await db
+    .select()
+    .from(deviceFingerprints)
+    .where(
+      and(
+        eq(deviceFingerprints.userId, userId),
+        eq(deviceFingerprints.isActive, true)
+      )
+    )
+    .limit(1);
+  return record;
+}
+
+/**
+ * Create device fingerprint
+ */
+export async function createDeviceFingerprint(data: InsertDeviceFingerprint) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const [record] = await db
+    .insert(deviceFingerprints)
+    .values(data)
+    .$returningId();
+  return record;
+}
+
+/**
+ * Update device fingerprint
+ */
+export async function updateDeviceFingerprint(
+  fingerprintId: number,
+  data: Partial<InsertDeviceFingerprint>
+) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db
+    .update(deviceFingerprints)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(deviceFingerprints.id, fingerprintId));
+}
+
+/**
+ * Deactivate all device fingerprints for a user
+ */
+export async function deactivateAllDeviceFingerprintsForUser(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db
+    .update(deviceFingerprints)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(eq(deviceFingerprints.userId, userId));
+}
+
+/**
+ * Activate device fingerprint
+ */
+export async function activateDeviceFingerprint(fingerprintId: number) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db
+    .update(deviceFingerprints)
+    .set({ isActive: true, lastActiveAt: new Date(), updatedAt: new Date() })
+    .where(eq(deviceFingerprints.id, fingerprintId));
+}
+
+/**
+ * Delete device fingerprint
+ */
+export async function deleteDeviceFingerprint(fingerprintId: number) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db
+    .delete(deviceFingerprints)
+    .where(eq(deviceFingerprints.id, fingerprintId));
+}
+
+/**
+ * Update user's active device
+ */
+export async function updateUserActiveDevice(
+  userId: number,
+  deviceId: string,
+  sessionId: string
+) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db
+    .update(users)
+    .set({
+      activeDeviceId: deviceId,
+      activeDeviceSessionId: sessionId,
+      lastActiveAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId));
+}

@@ -210,21 +210,31 @@ export type PaymentProof = typeof paymentProofs.$inferSelect;
 export type InsertPaymentProof = typeof paymentProofs.$inferInsert;
 
 /**
- * Device fingerprints table - tracks device identifiers for free trial anti-abuse
- * Ensures each device can only activate free trial once
+ * Device fingerprints table - for device binding and anti-sharing
+ * Tracks device identifiers to ensure one account per device
  */
 export const deviceFingerprints = mysqlTable("deviceFingerprints", {
   id: int("id").autoincrement().primaryKey(),
-  fingerprint: varchar("fingerprint", { length: 255 }).notNull().unique(),
   userId: int("userId").notNull(),
-  planName: varchar("planName", { length: 100 }).notNull(),
+  fingerprint: varchar("fingerprint", { length: 255 }).notNull().unique(),
+  deviceName: varchar("deviceName", { length: 255 }),
+  deviceType: varchar("deviceType", { length: 50 }), // windows, macos, linux
+  os: varchar("os", { length: 100 }),
+  osVersion: varchar("osVersion", { length: 50 }),
+  cpuModel: varchar("cpuModel", { length: 255 }),
+  totalMemory: bigint("totalMemory", { mode: "number" }),
+  macAddress: varchar("macAddress", { length: 100 }),
   userAgent: text("userAgent"),
   screenResolution: varchar("screenResolution", { length: 50 }),
   timezone: varchar("timezone", { length: 50 }),
   language: varchar("language", { length: 20 }),
   hardwareInfo: text("hardwareInfo"),
+  planName: varchar("planName", { length: 100 }),
+  isActive: boolean("isActive").default(true).notNull(),
+  lastActiveAt: timestamp("lastActiveAt").defaultNow().notNull(),
+  bindedAt: timestamp("bindedAt").defaultNow().notNull(),
   activatedAt: timestamp("activatedAt").defaultNow().notNull(),
-  expiresAt: timestamp("expiresAt").notNull(),
+  expiresAt: timestamp("expiresAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
