@@ -186,6 +186,11 @@ export default function Register() {
                   {countdown > 0 ? `${countdown}s` : sendCodeMutation.isPending ? '发送中...' : '发送验证码'}
                 </Button>
               </div>
+              {countdown > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  未收到验证码？请检查垃圾邮件文件夹，或等待 {countdown} 秒后重新发送
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
