@@ -5,12 +5,15 @@ import * as url from 'url';
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow() {
+  console.log('[Main] Creating window...');
+  
   // 创建浏览器窗口
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 900,
     minHeight: 600,
+    show: true, // 立即显示窗口
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -19,9 +22,12 @@ function createWindow() {
     title: 'LogVPN',
     icon: path.join(__dirname, '..', 'resources', 'icon-1024.png'), // 应用图标
   });
+  
+  console.log('[Main] Window created successfully');
 
   // 加载前端页面
   if (process.env.NODE_ENV === 'development') {
+    console.log('[Main] Loading development server...');
     // 开发模式：加载 Vite 开发服务器
     mainWindow.loadURL('http://localhost:5173');
     // 打开开发者工具
@@ -29,17 +35,45 @@ function createWindow() {
   } else {
     // 生产模式：加载打包后的 HTML 文件
     const indexPath = path.join(__dirname, '..', 'dist', 'index.html');
-    mainWindow.loadFile(indexPath);
+    console.log('[Main] Loading production HTML from:', indexPath);
+    console.log('[Main] __dirname:', __dirname);
+    
+    // 检查文件是否存在
+    const fs = require('fs');
+    if (fs.existsSync(indexPath)) {
+      console.log('[Main] index.html found, loading...');
+      mainWindow.loadFile(indexPath).catch(err => {
+        console.error('[Main] Failed to load file:', err);
+      });
+    } else {
+      console.error('[Main] index.html NOT FOUND at:', indexPath);
+      // 尝试备用路径
+      const altPath = path.join(process.resourcesPath, 'app', 'dist', 'index.html');
+      console.log('[Main] Trying alternative path:', altPath);
+      if (fs.existsSync(altPath)) {
+        console.log('[Main] Alternative path found, loading...');
+        mainWindow.loadFile(altPath).catch(err => {
+          console.error('[Main] Failed to load from alternative path:', err);
+        });
+      } else {
+        console.error('[Main] Alternative path also NOT FOUND');
+      }
+    }
   }
+  
+  // 监听页面加载事件
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('[Main] Page loaded successfully');
+  });
+  
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('[Main] Page failed to load:', errorCode, errorDescription);
+  });
 
   // 窗口关闭时的处理
   mainWindow.on('closed', () => {
+    console.log('[Main] Window closed');
     mainWindow = null;
-  });
-
-  // 窗口准备好后的处理
-  mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
   });
 }
 
