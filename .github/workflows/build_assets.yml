@@ -2,8 +2,7 @@ name: Build Assets
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -24,15 +23,17 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
-      - name: Install dependencies
+      - name: Force Install Dependencies
+        # 使用 --no-frozen-lockfile 强制跳过锁定文件冲突
         run: pnpm install --no-frozen-lockfile
 
-      - name: Build
+      - name: Build Electron App
+        # 直接运行打包，并在打包前由 package.json 处理编译
         run: pnpm run build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Artifacts
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: LogVPN-windows-latest
