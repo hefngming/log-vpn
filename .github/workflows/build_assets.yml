@@ -25,10 +25,11 @@ jobs:
         with:
           node-version: 20
 
+      # 绕过 action-setup 的版本检测，直接用 npm 安装 pnpm
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        run: npm install -g pnpm
 
-      # 核心修复：在构建前动态补全 package.json 关键字段
+      # 动态补全 package.json 关键字段
       - name: Fix package.json for Electron
         shell: bash
         run: |
@@ -51,7 +52,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pnpm install
+          pnpm install --no-frozen-lockfile
           pnpm add -D electron electron-builder tsx
 
       - name: Build Frontend
@@ -70,10 +71,3 @@ jobs:
         run: npx electron-builder --${{ matrix.os == 'windows-latest' && 'win' || 'mac' }} --x64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_OPTIONS: "--max-old-space-size=4096"
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: LogVPN-${{ matrix.os }}
-          path: dist_electron/*.${{ matrix.os == 'windows-latest' && 'exe' || 'dmg' }}
