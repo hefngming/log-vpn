@@ -632,3 +632,12 @@
 - [ ] 用户手动触发 GitHub Actions 构建
 - [ ] 用户下载并验证 Windows 应用界面
 - [ ] 用户反馈构建结果
+
+## 客户端界面问题深度诊断
+- [x] 检查 package.json 中的 electron-builder 配置
+- [x] 验证 files 配置是否包含所有必要文件
+- [x] 检查 main 字段指向是否正确
+- [x] 本地构建测试（pnpm run build）
+- [x] 验证打包后的文件结构（dist_electron, dist/public）
+- [x] 修复发现的问题（添加多路径尝试逻辑）
+- [ ] 触发新构建并验证

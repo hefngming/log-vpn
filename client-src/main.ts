@@ -21,7 +21,7 @@ Sentry.init({
 
 let mainWindow: BrowserWindow | null = null;
 
-function createWindow() {
+async function createWindow() {
   console.log('[Main] Creating window...');
   
   // 创建浏览器窗口
@@ -51,30 +51,48 @@ function createWindow() {
     mainWindow.webContents.openDevTools();
   } else {
     // 生产模式：加载打包后的 HTML 文件
+    // 在打包后，__dirname 指向 resources/app.asar/dist_electron
+    // 前端文件在 resources/app.asar/dist/public
     const indexPath = path.join(__dirname, '..', 'dist', 'public', 'index.html');
     console.log('[Main] Loading production HTML from:', indexPath);
     console.log('[Main] __dirname:', __dirname);
     
-    // 检查文件是否存在
+    // 检查文件是否存在并加载
     const fs = require('fs');
-    if (fs.existsSync(indexPath)) {
-      console.log('[Main] index.html found, loading...');
-      mainWindow.loadFile(indexPath).catch(err => {
-        console.error('[Main] Failed to load file:', err);
-      });
-    } else {
-      console.error('[Main] index.html NOT FOUND at:', indexPath);
-      // 尝试备用路径
-      const altPath = path.join(process.resourcesPath, 'app', 'dist', 'index.html');
-      console.log('[Main] Trying alternative path:', altPath);
-      if (fs.existsSync(altPath)) {
-        console.log('[Main] Alternative path found, loading...');
-        mainWindow.loadFile(altPath).catch(err => {
-          console.error('[Main] Failed to load from alternative path:', err);
-        });
+    console.log('[Main] Checking paths:');
+    console.log('[Main] - indexPath:', indexPath);
+    console.log('[Main] - process.resourcesPath:', process.resourcesPath);
+    console.log('[Main] - __dirname:', __dirname);
+    
+    // 尝试多个可能的路径
+    const possiblePaths = [
+      indexPath,
+      path.join(process.resourcesPath, 'app.asar', 'dist', 'public', 'index.html'),
+      path.join(process.resourcesPath, 'app', 'dist', 'public', 'index.html'),
+      path.join(__dirname, '..', '..', 'dist', 'public', 'index.html'),
+    ];
+    
+    let loaded = false;
+    for (const tryPath of possiblePaths) {
+      console.log('[Main] Trying path:', tryPath);
+      if (fs.existsSync(tryPath)) {
+        console.log('[Main] ✓ Found! Loading:', tryPath);
+        try {
+          await mainWindow.loadFile(tryPath);
+          loaded = true;
+          console.log('[Main] ✓ Successfully loaded');
+          break;
+        } catch (err) {
+          console.error('[Main] ✗ Failed to load:', err);
+        }
       } else {
-        console.error('[Main] Alternative path also NOT FOUND');
+        console.log('[Main] ✗ Not found:', tryPath);
       }
+    }
+    
+    if (!loaded) {
+      console.error('[Main] ✗ FATAL: Could not find index.html in any location');
+      console.error('[Main] Please check the build configuration');
     }
   }
   

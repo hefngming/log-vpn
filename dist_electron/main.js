@@ -23576,7 +23576,7 @@ init({
   }
 });
 var mainWindow = null;
-function createWindow() {
+async function createWindow() {
   console.log("[Main] Creating window...");
   mainWindow = new BrowserWindow3({
     width: 1200,
@@ -23605,23 +23605,36 @@ function createWindow() {
     console.log("[Main] Loading production HTML from:", indexPath);
     console.log("[Main] __dirname:", __dirname);
     const fs = __require("fs");
-    if (fs.existsSync(indexPath)) {
-      console.log("[Main] index.html found, loading...");
-      mainWindow.loadFile(indexPath).catch((err) => {
-        console.error("[Main] Failed to load file:", err);
-      });
-    } else {
-      console.error("[Main] index.html NOT FOUND at:", indexPath);
-      const altPath = path.join(process.resourcesPath, "app", "dist", "index.html");
-      console.log("[Main] Trying alternative path:", altPath);
-      if (fs.existsSync(altPath)) {
-        console.log("[Main] Alternative path found, loading...");
-        mainWindow.loadFile(altPath).catch((err) => {
-          console.error("[Main] Failed to load from alternative path:", err);
-        });
+    console.log("[Main] Checking paths:");
+    console.log("[Main] - indexPath:", indexPath);
+    console.log("[Main] - process.resourcesPath:", process.resourcesPath);
+    console.log("[Main] - __dirname:", __dirname);
+    const possiblePaths = [
+      indexPath,
+      path.join(process.resourcesPath, "app.asar", "dist", "public", "index.html"),
+      path.join(process.resourcesPath, "app", "dist", "public", "index.html"),
+      path.join(__dirname, "..", "..", "dist", "public", "index.html")
+    ];
+    let loaded = false;
+    for (const tryPath of possiblePaths) {
+      console.log("[Main] Trying path:", tryPath);
+      if (fs.existsSync(tryPath)) {
+        console.log("[Main] \u2713 Found! Loading:", tryPath);
+        try {
+          await mainWindow.loadFile(tryPath);
+          loaded = true;
+          console.log("[Main] \u2713 Successfully loaded");
+          break;
+        } catch (err) {
+          console.error("[Main] \u2717 Failed to load:", err);
+        }
       } else {
-        console.error("[Main] Alternative path also NOT FOUND");
+        console.log("[Main] \u2717 Not found:", tryPath);
       }
+    }
+    if (!loaded) {
+      console.error("[Main] \u2717 FATAL: Could not find index.html in any location");
+      console.error("[Main] Please check the build configuration");
     }
   }
   mainWindow.webContents.on("did-finish-load", () => {
