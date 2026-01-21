@@ -563,3 +563,12 @@
 - [x] 检查 Electron 主进程窗口创建代码
 - [ ] 测试 Windows 应用界面显示
 - [ ] 重新构建并测试 macOS 安装程序
+
+## 应用图标创建和配置
+- [x] 生成 LogVPN 应用图标设计（1024x1024 PNG）
+- [x] 转换为 Windows .ico 格式（多尺寸）
+- [x] 转换为 macOS .icns 格式（多尺寸）
+- [x] 配置 package.json 中的图标引用
+- [x] 配置 Electron 主进程中的图标引用
+- [ ] 测试 Windows 构建（带图标）
+- [ ] 测试 macOS 构建（带图标）

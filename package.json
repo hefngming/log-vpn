@@ -157,6 +157,7 @@
           ]
         }
       ],
+      "icon": "resources/icon.icns",
       "category": "public.app-category.utilities",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
@@ -177,6 +178,7 @@
         }
       ],
       "title": "LogVPN Installer",
+      "icon": "resources/icon.icns",
       "window": {
         "width": 540,
         "height": 380

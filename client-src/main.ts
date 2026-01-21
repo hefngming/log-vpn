@@ -17,7 +17,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'), // 如果需要 preload 脚本
     },
     title: 'LogVPN',
-    // icon: path.join(__dirname, '../resources/icon.png'), // 应用图标（暂时注释，等图标文件准备好后再启用）
+    icon: path.join(__dirname, '..', 'resources', 'icon-1024.png'), // 应用图标
   });
 
   // 加载前端页面
