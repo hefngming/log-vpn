@@ -541,3 +541,17 @@
 - [ ] 监控构建进度
 - [ ] 下载 .exe 并验证无 .ts 文件被调用
 - [ ] 提供新的下载链接
+
+## 新增功能 - macOS 客户端打包和 Windows 代码签名
+- [x] 添加 macOS 打包配置到 package.json
+- [x] 创建 macOS entitlements 文件
+- [x] 配置 macOS DMG 打包选项（双架构支持）
+- [x] 配置 Windows 代码签名（消除安全警告）
+- [x] 创建详细的代码签名配置指南
+- [x] 创建图标和证书目录说明文档
+- [ ] 添加实际的 macOS 图标文件（.icns）
+- [ ] 添加实际的 Windows 图标文件（.ico）
+- [ ] 购买并配置 Windows 代码签名证书
+- [ ] 更新 GitHub Actions 工作流支持 macOS 和 Windows 双平台打包
+- [ ] 测试 macOS 安装程序（.dmg）
+- [ ] 测试 Windows 签名安装程序（无安全警告）
