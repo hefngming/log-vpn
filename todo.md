@@ -527,3 +527,17 @@
 - [ ] 提交更改到 main 分支
 - [ ] 监控 GitHub Actions 构建进度
 - [ ] 获取 Windows .exe 安装程序下载链接
+
+
+## Electron .ts 扩展错误核心修复
+- [x] 完全重写 package.json（格式化，非单行）
+- [x] 设置 "main": "dist_electron/main.js"
+- [x] 添加 "build:main": "esbuild client-src/main.ts --bundle --platform=node --outfile=dist_electron/main.js"
+- [x] 确保 build 脚本在 electron-builder 之前运行 build:renderer 和 build:main
+- [x] 确保 esbuild 在 devDependencies 中
+- [x] 验证 GitHub Actions 工作流匹配新的构建脚本
+- [ ] 提交到 main 分支
+- [ ] 手动触发 GitHub Action
+- [ ] 监控构建进度
+- [ ] 下载 .exe 并验证无 .ts 文件被调用
+- [ ] 提供新的下载链接
