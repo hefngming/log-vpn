@@ -1,0 +1,18 @@
+// 修复建议：client-src/main.ts 路径及图标引用修复
+
+// 1. 修复 preload 路径引用 (打包后 preload.ts 会被编译为 preload.js)
+// 修改前：preload: path.join(__dirname, 'preload.ts'),
+// 修改后：
+preload: path.join(__dirname, isDev ? 'preload.ts' : 'preload.js'),
+
+// 2. 修复图标路径引用 (确保图标文件存在于正确目录)
+// 修改前：icon: path.join(__dirname, '../assets/icon.png'),
+// 修改后：
+icon: path.join(__dirname, isDev ? '../client/public/favicon.ico' : '../dist/public/favicon.ico'),
+
+// 3. 修复前端页面加载路径 (确保与 vite.config.ts 的 outDir 一致)
+// 修改前：const startUrl = isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '../dist/index.html')}`;
+// 修改后：
+const startUrl = isDev 
+  ? 'http://localhost:3000' 
+  : `file://${path.join(__dirname, '../dist/public/index.html')}`;

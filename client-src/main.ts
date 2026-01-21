@@ -1,13 +1,19 @@
 /**
  * Electron Main Process
  * Integrates auto-update, traffic monitoring, and onboarding modules
+ * Fixed for production paths and resource loading
  */
 
 import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import { initAutoUpdate, getAppVersion } from './autoUpdate';
-import { TrafficMonitor, setupTrafficMonitorIPC } from './trafficMonitor';
+import { fileURLToPath } from 'url';
+import { initAutoUpdate, getAppVersion } from './autoUpdate.js'; // 生产环境使用 .js
+import { TrafficMonitor, setupTrafficMonitorIPC } from './trafficMonitor.js';
+
+// ES Module __dirname fix
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Determine if running in development
 const isDev = process.env.NODE_ENV === 'development' || process.env.VITE_DEV_SERVER_HOST;
@@ -28,28 +34,28 @@ function createWindow(): void {
     minWidth: 800,
     minHeight: 600,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.ts'),
+      // 修复：生产环境引用编译后的 .js 文件
+      preload: path.join(__dirname, isDev ? 'preload.ts' : 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
       sandbox: true,
     },
-    icon: path.join(__dirname, '../assets/icon.png'),
+    // 修复：引用 client/public 下的图标，确保打包后路径正确
+    icon: path.join(__dirname, isDev ? '../client/public/favicon.ico' : '../dist/public/favicon.ico'),
   });
 
-  // Load the app URL
+  // 修复：根据 vite.config.ts 的输出路径加载 index.html
   const startUrl = isDev
     ? 'http://localhost:3000'
-    : `file://${path.join(__dirname, '../dist/index.html')}`;
+    : `file://${path.join(__dirname, '../dist/public/index.html')}`;
 
   mainWindow.loadURL(startUrl);
 
-  // Open DevTools in development
   if (isDev) {
     mainWindow.webContents.openDevTools();
   }
 
-  // Handle window closed
   mainWindow.on('closed', () => {
     mainWindow = null;
     if (trafficMonitor) {
@@ -57,7 +63,6 @@ function createWindow(): void {
     }
   });
 
-  // Create application menu
   createMenu();
 }
 
@@ -67,10 +72,10 @@ function createWindow(): void {
 function createMenu(): void {
   const template: any[] = [
     {
-      label: 'File',
+      label: '文件',
       submenu: [
         {
-          label: 'Exit',
+          label: '退出',
           accelerator: 'CmdOrCtrl+Q',
           click: () => {
             app.quit();
@@ -79,35 +84,35 @@ function createMenu(): void {
       ],
     },
     {
-      label: 'Edit',
+      label: '编辑',
       submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
+        { role: 'undo', label: '撤销' },
+        { role: 'redo', label: '重做' },
         { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
+        { role: 'cut', label: '剪切' },
+        { role: 'copy', label: '复制' },
+        { role: 'paste', label: '粘贴' },
       ],
     },
     {
-      label: 'View',
+      label: '视图',
       submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
+        { role: 'reload', label: '刷新' },
+        { role: 'forceReload', label: '强制刷新' },
+        { role: 'toggleDevTools', label: '开发者工具' },
       ],
     },
     {
-      label: 'Help',
+      label: '帮助',
       submenu: [
         {
-          label: 'About Log VPN',
+          label: '关于 Log VPN',
           click: () => {
             dialog.showMessageBox(mainWindow!, {
               type: 'info',
-              title: 'About Log VPN',
+              title: '关于 Log VPN',
               message: 'Log VPN',
-              detail: `Version ${getAppVersion()}\n\nA fast, secure, and reliable VPN service.`,
+              detail: `版本 ${getAppVersion()}\n\n极速、安全、可靠的 VPN 服务。`,
             });
           },
         },
@@ -129,30 +134,25 @@ function initializeTrafficMonitoring(): void {
 
   trafficMonitor = new TrafficMonitor(
     {
-      checkInterval: 60000, // Check every 1 minute
+      checkInterval: 60000,
       warningThreshold: 80,
       criticalThreshold: 95,
     },
     mainWindow
   );
 
-  // Setup IPC handlers
   setupTrafficMonitorIPC(trafficMonitor);
 
-  // Start monitoring (will fetch traffic data from API)
   trafficMonitor.start(async () => {
     try {
-      // Get auth token from renderer process
       const authToken = await mainWindow?.webContents.executeJavaScript(
         'localStorage.getItem("auth_token")'
       );
 
       if (!authToken) {
-        console.log('[TrafficMonitor] No auth token found');
         return null;
       }
 
-      // Fetch traffic usage from backend API
       const apiUrl = process.env.VITE_FRONTEND_FORGE_API_URL || 'https://dj.siumingho.dpdns.org/api/trpc';
       const response = await fetch(`${apiUrl}/traffic.getUsage`, {
         method: 'GET',
@@ -163,137 +163,69 @@ function initializeTrafficMonitoring(): void {
       });
 
       if (!response.ok) {
-        console.error('[TrafficMonitor] Failed to fetch traffic usage:', response.status);
         return null;
       }
 
       const data = await response.json();
-
-      // Handle tRPC response format
       if (data.result && data.result.data) {
         return data.result.data;
       }
-
       return data;
     } catch (error) {
-      console.error('[TrafficMonitor] Error fetching traffic usage:', error);
+      console.error('[TrafficMonitor] Error:', error);
       return null;
     }
   });
-
-  console.log('[Main] Traffic monitoring initialized');
 }
 
-/**
- * Handle app ready event
- */
 app.on('ready', () => {
   createWindow();
-
-  // Initialize auto-update checking
   initAutoUpdate();
-
-  // Initialize traffic monitoring
   if (mainWindow) {
     initializeTrafficMonitoring();
   }
 });
 
-/**
- * Handle window all closed event
- */
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
-/**
- * Handle app activate event (macOS)
- */
 app.on('activate', () => {
   if (mainWindow === null) {
     createWindow();
   }
 });
 
-/**
- * IPC Handlers for Onboarding
- */
-
-// Get onboarding status
+// Onboarding IPC Handlers
 ipcMain.handle('get-onboarding-status', async () => {
   try {
     const userDataPath = app.getPath('userData');
     const onboardingFile = path.join(userDataPath, 'onboarding-status.json');
-
     if (fs.existsSync(onboardingFile)) {
-      const data = JSON.parse(fs.readFileSync(onboardingFile, 'utf-8'));
-      return data;
+      return JSON.parse(fs.readFileSync(onboardingFile, 'utf-8'));
     }
-
-    return {
-      completed: false,
-      currentStep: 0,
-      skipped: false,
-    };
+    return { completed: false, currentStep: 0, skipped: false };
   } catch (error) {
-    console.error('[IPC] Error reading onboarding status:', error);
-    return {
-      completed: false,
-      currentStep: 0,
-      skipped: false,
-    };
+    return { completed: false, currentStep: 0, skipped: false };
   }
 });
 
-// Update onboarding status
 ipcMain.handle('update-onboarding-status', async (_, status) => {
   try {
     const userDataPath = app.getPath('userData');
     const onboardingFile = path.join(userDataPath, 'onboarding-status.json');
-
-    // Ensure directory exists
     if (!fs.existsSync(userDataPath)) {
       fs.mkdirSync(userDataPath, { recursive: true });
     }
-
     fs.writeFileSync(onboardingFile, JSON.stringify(status, null, 2));
-    console.log('[IPC] Onboarding status updated:', status);
     return { success: true };
   } catch (error) {
-    console.error('[IPC] Error updating onboarding status:', error);
     return { success: false, error: (error as Error).message };
   }
 });
 
-// Skip onboarding
-ipcMain.handle('skip-onboarding', async () => {
-  try {
-    const userDataPath = app.getPath('userData');
-    const onboardingFile = path.join(userDataPath, 'onboarding-status.json');
-
-    const status = {
-      completed: false,
-      currentStep: 0,
-      skipped: true,
-      skippedAt: new Date().toISOString(),
-    };
-
-    fs.writeFileSync(onboardingFile, JSON.stringify(status, null, 2));
-    console.log('[IPC] Onboarding skipped');
-    return { success: true };
-  } catch (error) {
-    console.error('[IPC] Error skipping onboarding:', error);
-    return { success: false, error: (error as Error).message };
-  }
-});
-
-/**
- * IPC Handlers for App Info
- */
-
-// Get app version
 ipcMain.handle('get-app-version', async () => {
   return {
     version: getAppVersion(),
@@ -302,19 +234,12 @@ ipcMain.handle('get-app-version', async () => {
   };
 });
 
-// Get app path
 ipcMain.handle('get-app-path', async (_, name: string) => {
   return app.getPath(name as any);
 });
 
-/**
- * Handle any uncaught exceptions
- */
 process.on('uncaughtException', (error) => {
   console.error('[Main] Uncaught exception:', error);
-  if (mainWindow) {
-    dialog.showErrorBox('Error', 'An unexpected error occurred. Please restart the application.');
-  }
 });
 
 export { mainWindow, trafficMonitor };
