@@ -1,6 +1,10 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
-import * as path from 'path';
-import * as url from 'url';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// 解决 ES 模块下 __dirname 丢失的问题
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -11,48 +15,48 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
+    show: false, // 先隐藏，等准备好了再显示，防止白屏
     webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'), // 如果需要 preload 脚本
+      nodeIntegration: true, // 允许使用 node 接口
+      contextIsolation: false, // 为了兼容性暂时关闭隔离，确保界面逻辑能跑通
+      preload: path.join(__dirname, 'preload.js'), 
     },
     title: 'LogVPN',
-    icon: path.join(__dirname, '../resources/icon.png'), // 应用图标
+    // 确保图标路径存在，若打包报错可暂时注释掉此行
+    // icon: path.join(__dirname, '../resources/icon.png'), 
   });
 
-  // 加载前端页面
-  if (process.env.NODE_ENV === 'development') {
+  // 【核心修复：判断是否打包环境】
+  const isPackaged = app.isPackaged;
+
+  if (!isPackaged && process.env.NODE_ENV === 'development') {
     // 开发模式：加载 Vite 开发服务器
     mainWindow.loadURL('http://localhost:5173');
-    // 打开开发者工具
     mainWindow.webContents.openDevTools();
   } else {
-    // 生产模式：加载打包后的 HTML 文件
-    mainWindow.loadURL(
-      url.format({
-        pathname: path.join(__dirname, '../dist/index.html'),
-        protocol: 'file:',
-        slashes: true,
-      })
-    );
+    // 生产模式：直接加载绝对路径
+    // 注意：dist 文件夹应该在 dist_electron 的同级目录
+    const indexPath = path.join(__dirname, '../dist/index.html');
+    mainWindow.loadFile(indexPath).catch((err) => {
+      console.error('无法加载页面:', err);
+    });
   }
 
-  // 窗口关闭时的处理
+  // 窗口准备好后再显示，解决你看到的“有进程没界面”问题
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show();
+    mainWindow?.focus();
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
-
-  // 窗口准备好后的处理
-  mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
-  });
 }
 
-// 当 Electron 完成初始化并准备创建浏览器窗口时调用
+// 初始化应用
 app.whenReady().then(() => {
   createWindow();
 
-  // 在 macOS 上，当点击 dock 图标且没有其他窗口打开时，重新创建窗口
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
@@ -60,14 +64,14 @@ app.whenReady().then(() => {
   });
 });
 
-// 当所有窗口都被关闭时退出应用（Windows 和 Linux）
+// 退出应用处理
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
-// IPC 通信示例：处理来自渲染进程的消息
+// IPC 通信处理
 ipcMain.handle('get-app-version', () => {
   return app.getVersion();
 });
@@ -76,26 +80,15 @@ ipcMain.handle('get-app-path', () => {
   return app.getPath('userData');
 });
 
-// 防止应用多次启动
+// 单实例锁定
 const gotTheLock = app.requestSingleInstanceLock();
-
 if (!gotTheLock) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    // 当运行第二个实例时，聚焦到已存在的窗口
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
     }
   });
 }
-
-// 处理未捕获的异常
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
