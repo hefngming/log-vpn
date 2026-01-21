@@ -1,4 +1,4 @@
-name: Build Assets (Windows + macOS)
+name: Build Assets (Windows)
 
 on:
   push:
@@ -24,77 +24,21 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
-<<<<<<< HEAD
-      - name: Force Install Dependencies
-=======
       - name: Install Dependencies
->>>>>>> ddea597cb2f8b0917628d40857677d2b1c160dc3
         run: pnpm install --no-frozen-lockfile
+
       - name: Build App
         run: pnpm run build
 
-<<<<<<< HEAD
-      - name: Package with Electron Builder
-=======
       - name: Package Windows with Electron Builder
->>>>>>> ddea597cb2f8b0917628d40857677d2b1c160dc3
         run: pnpm run package
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
-<<<<<<< HEAD
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: LogVPN-FINAL-SUCCESS
-          path: release/*.exe
-=======
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
           name: LogVPN-Windows-Installer
           path: release/*.exe
           if-no-files-found: error
-
-  build-macos:
-    name: Build macOS Installer (x64 + arm64)
-    runs-on: macos-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
-
-      - name: Install Dependencies
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Build App
-        run: pnpm run build
-
-      - name: Package macOS with Electron Builder
-        run: pnpm run package
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-
-      - name: Upload macOS Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: LogVPN-macOS-Installer
-          path: release/*.dmg
-          if-no-files-found: error
->>>>>>> ddea597cb2f8b0917628d40857677d2b1c160dc3
