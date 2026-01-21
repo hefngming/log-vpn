@@ -34,7 +34,7 @@ function createWindow() {
     mainWindow.webContents.openDevTools();
   } else {
     // 生产模式：加载打包后的 HTML 文件
-    const indexPath = path.join(__dirname, '..', 'dist', 'index.html');
+    const indexPath = path.join(__dirname, '..', 'dist', 'public', 'index.html');
     console.log('[Main] Loading production HTML from:', indexPath);
     console.log('[Main] __dirname:', __dirname);
     

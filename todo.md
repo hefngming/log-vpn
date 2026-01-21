@@ -587,3 +587,10 @@
 - [x] 修复 ready-to-show 问题（立即显示窗口）
 - [x] 添加文件存在检查和备用路径
 - [ ] 重新构建并验证
+
+## 深入排查 - Windows 窗口不显示（根本原因）
+- [x] 检查 vite.config.ts 前端构建配置
+- [x] 验证前端构建输出目录（dist/public/）
+- [x] 检查 electron-builder 的 files 配置是否正确
+- [x] 修复 main.ts 中的文件加载路径（../dist/index.html → ../dist/public/index.html）
+- [ ] 测试本地构建验证修复

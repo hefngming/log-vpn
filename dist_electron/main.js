@@ -34,7 +34,7 @@ function createWindow() {
     mainWindow.loadURL("http://localhost:5173");
     mainWindow.webContents.openDevTools();
   } else {
-    const indexPath = path.join(__dirname, "..", "dist", "index.html");
+    const indexPath = path.join(__dirname, "..", "dist", "public", "index.html");
     console.log("[Main] Loading production HTML from:", indexPath);
     console.log("[Main] __dirname:", __dirname);
     const fs = __require("fs");
