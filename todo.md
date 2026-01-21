@@ -555,3 +555,11 @@
 - [ ] 更新 GitHub Actions 工作流支持 macOS 和 Windows 双平台打包
 - [ ] 测试 macOS 安装程序（.dmg）
 - [ ] 测试 Windows 签名安装程序（无安全警告）
+
+## Bug 修复 - macOS 构建失败和 Windows 应用无界面
+- [x] 诊断 macOS 构建失败原因（exit code 1）
+- [x] 修复 macOS 图标文件缺失问题（暂时移除图标配置）
+- [x] 修复 Windows 应用无界面问题（修正文件加载路径）
+- [x] 检查 Electron 主进程窗口创建代码
+- [ ] 测试 Windows 应用界面显示
+- [ ] 重新构建并测试 macOS 安装程序

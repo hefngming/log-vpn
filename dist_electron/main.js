@@ -1,7 +1,6 @@
 // client-src/main.ts
 import { app, BrowserWindow, ipcMain } from "electron";
 import * as path from "path";
-import * as url from "url";
 var mainWindow = null;
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -15,21 +14,15 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js")
       // 如果需要 preload 脚本
     },
-    title: "LogVPN",
-    icon: path.join(__dirname, "../resources/icon.png")
-    // 应用图标
+    title: "LogVPN"
+    // icon: path.join(__dirname, '../resources/icon.png'), // 应用图标（暂时注释，等图标文件准备好后再启用）
   });
   if (process.env.NODE_ENV === "development") {
     mainWindow.loadURL("http://localhost:5173");
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadURL(
-      url.format({
-        pathname: path.join(__dirname, "../dist/index.html"),
-        protocol: "file:",
-        slashes: true
-      })
-    );
+    const indexPath = path.join(__dirname, "..", "dist", "index.html");
+    mainWindow.loadFile(indexPath);
   }
   mainWindow.on("closed", () => {
     mainWindow = null;

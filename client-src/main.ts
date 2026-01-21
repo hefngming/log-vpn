@@ -17,7 +17,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'), // 如果需要 preload 脚本
     },
     title: 'LogVPN',
-    icon: path.join(__dirname, '../resources/icon.png'), // 应用图标
+    // icon: path.join(__dirname, '../resources/icon.png'), // 应用图标（暂时注释，等图标文件准备好后再启用）
   });
 
   // 加载前端页面
@@ -28,13 +28,8 @@ function createWindow() {
     mainWindow.webContents.openDevTools();
   } else {
     // 生产模式：加载打包后的 HTML 文件
-    mainWindow.loadURL(
-      url.format({
-        pathname: path.join(__dirname, '../dist/index.html'),
-        protocol: 'file:',
-        slashes: true,
-      })
-    );
+    const indexPath = path.join(__dirname, '..', 'dist', 'index.html');
+    mainWindow.loadFile(indexPath);
   }
 
   // 窗口关闭时的处理
