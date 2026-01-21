@@ -26,12 +26,14 @@ jobs:
       - name: Force Install Dependencies
         # 强制忽略所有之前的错误，重新下载所有包
         run: pnpm install --no-frozen-lockfile
-
       - name: Build App
-        # 依次运行渲染进程编译、主进程编译和打包
         run: pnpm run build
+
+      - name: Package with Electron Builder
+        run: pnpm run package
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
