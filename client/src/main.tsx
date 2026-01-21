@@ -7,6 +7,10 @@ import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";
+import { initSentry } from "@/lib/sentry";
+
+// 初始化 Sentry
+initSentry();
 
 const queryClient = new QueryClient();
 

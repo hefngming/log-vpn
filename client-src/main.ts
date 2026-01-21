@@ -1,6 +1,23 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import * as url from 'url';
+import * as Sentry from '@sentry/electron/main';
+
+// 初始化 Sentry
+Sentry.init({
+  dsn: process.env.SENTRY_DSN || '', // 从环境变量读取 DSN
+  environment: process.env.NODE_ENV || 'production',
+  enabled: !!process.env.SENTRY_DSN, // 只在配置了 DSN 时启用
+  tracesSampleRate: 1.0, // 性能监控采样率
+  beforeSend(event) {
+    // 在开发模式下不发送错误
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Sentry] Event:', event);
+      return null;
+    }
+    return event;
+  },
+});
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -123,8 +140,10 @@ if (!gotTheLock) {
 // 处理未捕获的异常
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
+  Sentry.captureException(error);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  Sentry.captureException(reason);
 });

@@ -594,3 +594,13 @@
 - [x] 检查 electron-builder 的 files 配置是否正确
 - [x] 修复 main.ts 中的文件加载路径（../dist/index.html → ../dist/public/index.html）
 - [ ] 测试本地构建验证修复
+
+## 新功能 - Sentry 错误上报集成
+- [x] 安装 Sentry SDK 依赖包（@sentry/electron, @sentry/react）
+- [x] 集成主进程错误捕获（uncaughtException, unhandledRejection）
+- [x] 集成渲染进程错误捕获（React 错误边界、全局错误）
+- [x] 添加用户上下文信息功能（setUser, clearUser）
+- [x] 创建 Sentry 配置说明文档（SENTRY_SETUP.md）
+- [ ] 用户配置 Sentry DSN（需要创建 Sentry 账号）
+- [ ] 测试错误上报功能
+- [ ] 重新构建并验证
