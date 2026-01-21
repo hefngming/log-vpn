@@ -11,7 +11,6 @@ jobs:
     name: Build ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      # 禁用 fail-fast，确保 Windows 和 macOS 互不干扰
       fail-fast: false
       matrix:
         os: [windows-latest, macos-latest]
@@ -27,17 +26,49 @@ jobs:
         with:
           node-version: 20
 
-      # 简化 pnpm 安装：不指定版本，让它自动识别 package.json 中的设置
       - name: Install pnpm
         uses: pnpm/action-setup@v4
 
       - name: Install dependencies
         run: pnpm install
 
+      # 关键步骤：如果项目中缺少 electron-builder 配置，则动态创建一个基础配置
+      - name: Ensure electron-builder config
+        shell: bash
+        run: |
+          if [ ! -f "electron-builder.json" ] && [ ! -f "electron-builder.yml" ] && [ ! -f "electron-builder.js" ]; then
+            echo '{
+              "appId": "com.logvpn.official",
+              "productName": "LogVPN",
+              "directories": {
+                "output": "dist",
+                "buildResources": "assets"
+              },
+              "files": [
+                "dist/public/**/*",
+                "client-src/**/*",
+                "resources/**/*",
+                "package.json"
+              ],
+              "win": {
+                "target": "nsis"
+              },
+              "mac": {
+                "target": "dmg",
+                "hardenedRuntime": true,
+                "gatekeeperAssess": false
+              },
+              "nsis": {
+                "oneClick": false,
+                "allowToChangeInstallationDirectory": true
+              }
+            }' > electron-builder.json
+            echo "Created temporary electron-builder.json"
+          fi
+
       - name: Build Frontend
         run: pnpm run build
 
-      # 针对 C# 源码兼容性：确保 resources 目录结构正确
       - name: Download v2ray Core (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
@@ -61,15 +92,16 @@ jobs:
           unzip v2ray.zip -d $DEST
           rm v2ray.zip
 
+      # 使用 npx 直接运行 electron-builder，避免依赖未正确安装在 path 中的问题
       - name: Build Electron App (Windows)
         if: matrix.os == 'windows-latest'
-        run: pnpm exec electron-builder --windows nsis --x64
+        run: npx electron-builder --windows nsis --x64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Electron App (macOS)
         if: matrix.os == 'macos-latest'
-        run: pnpm exec electron-builder --macos dmg --x64 --arm64
+        run: npx electron-builder --macos dmg --x64 --arm64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
