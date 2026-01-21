@@ -1,9 +1,20 @@
-name: Build Assets
+name: Build Assets (Optimized)
 
 on:
   push:
     branches:
       - main
+    # 优化 1：路径过滤 - 只有当客户端相关代码、共享代码或工作流本身发生变化时才触发构建
+    # 忽略文档、后端代码、数据库迁移等不影响客户端构建的修改
+    paths:
+      - 'client/**'
+      - 'client-src/**'
+      - 'shared/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'vite.config.ts'
+      - 'electron-builder.json'
+      - '.github/workflows/build_assets.yml'
   workflow_dispatch:
 
 jobs:
@@ -11,7 +22,6 @@ jobs:
     name: Build ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      # 关键优化：即使一个平台失败，也不取消其他平台的构建
       fail-fast: false
       matrix:
         os: [windows-latest, macos-latest]
@@ -31,49 +41,59 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 10
-          # 确保 pnpm 可执行文件被添加到 PATH
           run_install: false
 
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
+      # 优化 2：node_modules 深度缓存
+      # 缓存整个 node_modules 目录，如果 lockfile 没变，安装步骤将几乎瞬间完成
+      - name: Cache node modules
+        id: cache-nodemodules
         uses: actions/cache@v4
         with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          path: |
+            node_modules
+            **/node_modules
+          key: ${{ runner.os }}-build-nodemodules-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+            ${{ runner.os }}-build-nodemodules-
 
       - name: Install dependencies
-        # 优化：使用 --frozen-lockfile 确保环境一致性
+        # 只有在缓存未命中时才执行完整安装
+        if: steps.cache-nodemodules.outputs.cache-hit != 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Build Frontend
         run: pnpm run build
 
+      # 优化 3：内核下载逻辑增强
       - name: Download v2ray Core (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
           $v2ray_version = "v5.14.1"
-          $url = "https://github.com/v2fly/v2ray-core/releases/download/$v2ray_version/v2ray-windows-64.zip"
-          if (!(Test-Path "resources/v2ray")) { New-Item -ItemType Directory -Force -Path "resources/v2ray" }
-          Invoke-WebRequest -Uri $url -OutFile v2ray.zip
-          Expand-Archive -Path v2ray.zip -DestinationPath resources/v2ray -Force
-          Remove-Item v2ray.zip
+          $dest_dir = "resources/v2ray"
+          if (!(Test-Path $dest_dir)) { New-Item -ItemType Directory -Force -Path $dest_dir }
+          # 检查是否已存在（利用 GitHub Actions 的环境持久性，虽然 Job 间不共享，但逻辑更稳健）
+          if (!(Test-Path "$dest_dir/v2ray.exe")) {
+            $url = "https://github.com/v2fly/v2ray-core/releases/download/$v2ray_version/v2ray-windows-64.zip"
+            Write-Host "Downloading v2ray core from $url"
+            Invoke-WebRequest -Uri $url -OutFile v2ray.zip
+            Expand-Archive -Path v2ray.zip -DestinationPath $dest_dir -Force
+            Remove-Item v2ray.zip
+          }
 
       - name: Download v2ray Core (macOS)
         if: matrix.os == 'macos-latest'
         run: |
           V2RAY_VERSION="v5.14.1"
-          URL="https://github.com/v2fly/v2ray-core/releases/download/$V2RAY_VERSION/v2ray-macos-64.zip"
-          mkdir -p resources/v2ray
-          curl -L $URL -o v2ray.zip
-          unzip v2ray.zip -d resources/v2ray
-          rm v2ray.zip
+          DEST_DIR="resources/v2ray"
+          mkdir -p $DEST_DIR
+          if [ ! -f "$DEST_DIR/v2ray" ]; then
+            URL="https://github.com/v2fly/v2ray-core/releases/download/$V2RAY_VERSION/v2ray-macos-64.zip"
+            echo "Downloading v2ray core from $URL"
+            curl -L $URL -o v2ray.zip
+            unzip v2ray.zip -d $DEST_DIR
+            rm v2ray.zip
+          fi
 
       - name: Build Electron App (Windows)
         if: matrix.os == 'windows-latest'
@@ -87,12 +107,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # 优化 4：精简产物上传，减少资源占用
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: LogVPN-${{ matrix.os }}-Assets
+          # 只上传最终安装包，排除中间过程文件
           path: |
             dist/*.exe
             dist/*.dmg
-            dist/*.zip
-            dist/*.blockmap
+          # 设置保留天数，节省 GitHub 存储空间
+          retention-days: 7
