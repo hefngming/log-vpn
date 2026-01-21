@@ -68,19 +68,24 @@ export type Order = typeof orders.$inferSelect;
 export type InsertOrder = typeof orders.$inferInsert;
 
 /**
- * VPN Nodes table - stores node information from X-ui
+ * VPN Nodes table - stores node information from 3X-UI
  */
 export const nodes = mysqlTable("nodes", {
   id: int("id").autoincrement().primaryKey(),
-  name: varchar("name", { length: 100 }).notNull(),
-  country: varchar("country", { length: 50 }).notNull(),
-  countryCode: varchar("countryCode", { length: 10 }).notNull(),
-  protocol: mysqlEnum("protocol", ["vless", "trojan", "shadowsocks", "vmess"]).notNull(),
+  xuiId: int("xuiId").notNull().unique(), // 3X-UI 中的节点 ID
+  name: varchar("name", { length: 100 }).notNull(), // 原始名称（3X-UI remark）
+  displayName: varchar("displayName", { length: 100 }).notNull(), // 自定义显示名称（别名）
+  country: varchar("country", { length: 50 }),
+  countryCode: varchar("countryCode", { length: 10 }),
+  protocol: varchar("protocol", { length: 50 }).notNull(), // vless, trojan, shadowsocks, vmess 等
   address: varchar("address", { length: 255 }).notNull(),
   port: int("port").notNull(),
+  encryptedConfig: text("encryptedConfig").notNull(), // Base64 加密后的完整配置
   settings: text("settings"), // JSON string for protocol-specific settings
+  streamSettings: text("streamSettings"), // JSON string for stream settings
   isActive: boolean("isActive").default(true).notNull(),
   sortOrder: int("sortOrder").default(0).notNull(),
+  lastSyncAt: timestamp("lastSyncAt").defaultNow().notNull(), // 最后同步时间
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
