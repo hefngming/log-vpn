@@ -10,7 +10,7 @@ jobs:
     name: Build ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      fail-fast: false # 确保 Windows 不受 macOS 失败影响
       matrix:
         os: [windows-latest, macos-latest]
 
@@ -25,11 +25,12 @@ jobs:
         with:
           node-version: 20
 
-      # 绕过 action-setup 的版本检测，直接用 npm 安装 pnpm
       - name: Install pnpm
         run: npm install -g pnpm
 
-      # 动态补全 package.json 关键字段
+      - name: Prune dependencies
+        run: pnpm prune # 清理缓存，确保环境纯净
+
       - name: Fix package.json for Electron
         shell: bash
         run: |
@@ -71,3 +72,9 @@ jobs:
         run: npx electron-builder --${{ matrix.os == 'windows-latest' && 'win' || 'mac' }} --x64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: LogVPN-${{ matrix.os }}
+          path: dist_electron/*.${{ matrix.os == 'windows-latest' && 'exe' || 'dmg' }}
