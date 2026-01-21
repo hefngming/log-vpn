@@ -1,245 +1,101 @@
-/**
- * Electron Main Process
- * Integrates auto-update, traffic monitoring, and onboarding modules
- * Fixed for production paths and resource loading
- */
-
-import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
-import * as fs from 'fs';
-import { fileURLToPath } from 'url';
-import { initAutoUpdate, getAppVersion } from './autoUpdate.js'; // 生产环境使用 .js
-import { TrafficMonitor, setupTrafficMonitorIPC } from './trafficMonitor.js';
+import * as url from 'url';
 
-// ES Module __dirname fix
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Determine if running in development
-const isDev = process.env.NODE_ENV === 'development' || process.env.VITE_DEV_SERVER_HOST;
-
-// Global reference to main window
 let mainWindow: BrowserWindow | null = null;
 
-// Global traffic monitor instance
-let trafficMonitor: TrafficMonitor | null = null;
-
-/**
- * Create the main application window
- */
-function createWindow(): void {
+function createWindow() {
+  // 创建浏览器窗口
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    minWidth: 800,
+    minWidth: 900,
     minHeight: 600,
     webPreferences: {
-      // 修复：生产环境引用编译后的 .js 文件
-      preload: path.join(__dirname, isDev ? 'preload.ts' : 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      enableRemoteModule: false,
-      sandbox: true,
+      preload: path.join(__dirname, 'preload.js'), // 如果需要 preload 脚本
     },
-    // 修复：引用 client/public 下的图标，确保打包后路径正确
-    icon: path.join(__dirname, isDev ? '../client/public/favicon.ico' : '../dist/public/favicon.ico'),
+    title: 'LogVPN',
+    icon: path.join(__dirname, '../resources/icon.png'), // 应用图标
   });
 
-  // 修复：根据 vite.config.ts 的输出路径加载 index.html
-  const startUrl = isDev
-    ? 'http://localhost:3000'
-    : `file://${path.join(__dirname, '../dist/public/index.html')}`;
-
-  mainWindow.loadURL(startUrl);
-
-  if (isDev) {
+  // 加载前端页面
+  if (process.env.NODE_ENV === 'development') {
+    // 开发模式：加载 Vite 开发服务器
+    mainWindow.loadURL('http://localhost:5173');
+    // 打开开发者工具
     mainWindow.webContents.openDevTools();
+  } else {
+    // 生产模式：加载打包后的 HTML 文件
+    mainWindow.loadURL(
+      url.format({
+        pathname: path.join(__dirname, '../dist/index.html'),
+        protocol: 'file:',
+        slashes: true,
+      })
+    );
   }
 
+  // 窗口关闭时的处理
   mainWindow.on('closed', () => {
     mainWindow = null;
-    if (trafficMonitor) {
-      trafficMonitor.stop();
-    }
   });
 
-  createMenu();
-}
-
-/**
- * Create application menu
- */
-function createMenu(): void {
-  const template: any[] = [
-    {
-      label: '文件',
-      submenu: [
-        {
-          label: '退出',
-          accelerator: 'CmdOrCtrl+Q',
-          click: () => {
-            app.quit();
-          },
-        },
-      ],
-    },
-    {
-      label: '编辑',
-      submenu: [
-        { role: 'undo', label: '撤销' },
-        { role: 'redo', label: '重做' },
-        { type: 'separator' },
-        { role: 'cut', label: '剪切' },
-        { role: 'copy', label: '复制' },
-        { role: 'paste', label: '粘贴' },
-      ],
-    },
-    {
-      label: '视图',
-      submenu: [
-        { role: 'reload', label: '刷新' },
-        { role: 'forceReload', label: '强制刷新' },
-        { role: 'toggleDevTools', label: '开发者工具' },
-      ],
-    },
-    {
-      label: '帮助',
-      submenu: [
-        {
-          label: '关于 Log VPN',
-          click: () => {
-            dialog.showMessageBox(mainWindow!, {
-              type: 'info',
-              title: '关于 Log VPN',
-              message: 'Log VPN',
-              detail: `版本 ${getAppVersion()}\n\n极速、安全、可靠的 VPN 服务。`,
-            });
-          },
-        },
-      ],
-    },
-  ];
-
-  const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
-}
-
-/**
- * Initialize traffic monitoring
- */
-function initializeTrafficMonitoring(): void {
-  if (!mainWindow) {
-    return;
-  }
-
-  trafficMonitor = new TrafficMonitor(
-    {
-      checkInterval: 60000,
-      warningThreshold: 80,
-      criticalThreshold: 95,
-    },
-    mainWindow
-  );
-
-  setupTrafficMonitorIPC(trafficMonitor);
-
-  trafficMonitor.start(async () => {
-    try {
-      const authToken = await mainWindow?.webContents.executeJavaScript(
-        'localStorage.getItem("auth_token")'
-      );
-
-      if (!authToken) {
-        return null;
-      }
-
-      const apiUrl = process.env.VITE_FRONTEND_FORGE_API_URL || 'https://dj.siumingho.dpdns.org/api/trpc';
-      const response = await fetch(`${apiUrl}/traffic.getUsage`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        return null;
-      }
-
-      const data = await response.json();
-      if (data.result && data.result.data) {
-        return data.result.data;
-      }
-      return data;
-    } catch (error) {
-      console.error('[TrafficMonitor] Error:', error);
-      return null;
-    }
+  // 窗口准备好后的处理
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show();
   });
 }
 
-app.on('ready', () => {
+// 当 Electron 完成初始化并准备创建浏览器窗口时调用
+app.whenReady().then(() => {
   createWindow();
-  initAutoUpdate();
-  if (mainWindow) {
-    initializeTrafficMonitoring();
-  }
+
+  // 在 macOS 上，当点击 dock 图标且没有其他窗口打开时，重新创建窗口
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
 });
 
+// 当所有窗口都被关闭时退出应用（Windows 和 Linux）
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
-app.on('activate', () => {
-  if (mainWindow === null) {
-    createWindow();
-  }
+// IPC 通信示例：处理来自渲染进程的消息
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
 });
 
-// Onboarding IPC Handlers
-ipcMain.handle('get-onboarding-status', async () => {
-  try {
-    const userDataPath = app.getPath('userData');
-    const onboardingFile = path.join(userDataPath, 'onboarding-status.json');
-    if (fs.existsSync(onboardingFile)) {
-      return JSON.parse(fs.readFileSync(onboardingFile, 'utf-8'));
+ipcMain.handle('get-app-path', () => {
+  return app.getPath('userData');
+});
+
+// 防止应用多次启动
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    // 当运行第二个实例时，聚焦到已存在的窗口
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
     }
-    return { completed: false, currentStep: 0, skipped: false };
-  } catch (error) {
-    return { completed: false, currentStep: 0, skipped: false };
-  }
-});
+  });
+}
 
-ipcMain.handle('update-onboarding-status', async (_, status) => {
-  try {
-    const userDataPath = app.getPath('userData');
-    const onboardingFile = path.join(userDataPath, 'onboarding-status.json');
-    if (!fs.existsSync(userDataPath)) {
-      fs.mkdirSync(userDataPath, { recursive: true });
-    }
-    fs.writeFileSync(onboardingFile, JSON.stringify(status, null, 2));
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: (error as Error).message };
-  }
-});
-
-ipcMain.handle('get-app-version', async () => {
-  return {
-    version: getAppVersion(),
-    platform: process.platform,
-    arch: process.arch,
-  };
-});
-
-ipcMain.handle('get-app-path', async (_, name: string) => {
-  return app.getPath(name as any);
-});
-
+// 处理未捕获的异常
 process.on('uncaughtException', (error) => {
-  console.error('[Main] Uncaught exception:', error);
+  console.error('Uncaught Exception:', error);
 });
 
-export { mainWindow, trafficMonitor };
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
