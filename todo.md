@@ -509,3 +509,11 @@
 - [x] 实现版本对比逻辑
 - [x] 创建更新提示窗口
 - [x] 编写更新下载和安装流程
+
+
+## GitHub 编译测试和 Electron 打包修正
+- [ ] 修正 Electron 打包配置（排除 src 目录）
+- [ ] 创建 GitHub Actions 自动编译工作流
+- [ ] 创建详细的 GitHub 编译教程
+- [ ] 准备源代码同步脚本
+- [ ] 测试 GitHub Actions 工作流
