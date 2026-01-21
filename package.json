@@ -1,40 +1,21 @@
-name: Build Assets
-
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: windows-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
-
-      - name: Force Install Dependencies
-        # 使用 --no-frozen-lockfile 强制跳过锁定文件冲突
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Build Electron App
-        # 直接运行打包，并在打包前由 package.json 处理编译
-        run: pnpm run build
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: LogVPN-windows-latest
-          path: dist/*.exe
+{
+  "name": "log-vpn",
+  "version": "1.0.0",
+  "type": "module",
+  "license": "MIT",
+  "main": "dist_electron/main.js",
+  "scripts": {
+    "dev": "NODE_ENV=development tsx watch server/_core/index.ts",
+    "build:renderer": "vite build",
+    "build:main": "esbuild client-src/main.ts --bundle --platform=node --external:electron --outfile=dist_electron/main.js",
+    "build": "pnpm run build:renderer && pnpm run build:main && electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3",
+    "esbuild": "^0.20.2",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0",
+    "@builder.io/vite-plugin-jsx-loc": "latest"
+  }
+}
