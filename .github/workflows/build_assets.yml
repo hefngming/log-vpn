@@ -28,36 +28,16 @@ jobs:
       - name: Install pnpm
         run: npm install -g pnpm
 
-      - name: Prune dependencies
-        run: pnpm prune # 清理缓存，确保环境纯净
-
-      - name: Fix package.json for Electron
-        shell: bash
-        run: |
-          node -e "
-          const fs = require('fs');
-          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          pkg.description = 'LogVPN Official Client';
-          pkg.author = 'LogVPN';
-          pkg.main = 'client-src/main.ts';
-          pkg.build = {
-            appId: 'com.logvpn.official',
-            productName: 'LogVPN',
-            directories: { output: 'dist_electron' },
-            win: { target: 'nsis' },
-            mac: { target: 'dmg' },
-            files: ['dist/**/*', 'client-src/**/*', 'resources/**/*']
-          };
-          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
-          "
-
       - name: Install Dependencies
         run: |
           pnpm install --no-frozen-lockfile
-          pnpm add -D electron electron-builder tsx
+          pnpm add -D electron electron-builder esbuild
 
       - name: Build Frontend
-        run: pnpm run build
+        run: pnpm run build:renderer
+
+      - name: Build Electron Main
+        run: pnpm run build:main
 
       - name: Download v2ray Core
         shell: pwsh

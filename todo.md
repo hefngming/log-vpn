@@ -517,3 +517,13 @@
 - [ ] 创建详细的 GitHub 编译教程
 - [ ] 准备源代码同步脚本
 - [ ] 测试 GitHub Actions 工作流
+
+
+## Electron 构建修复和 Windows 安装程序生成
+- [x] 修改 package.json 的 main 字段为 dist_electron/main.js
+- [x] 添加 prebuild 脚本使用 esbuild 编译 TypeScript
+- [x] 更新 GitHub Actions 工作流配置
+- [x] 删除 pnpm-lock.yaml 并重新安装依赖
+- [ ] 提交更改到 main 分支
+- [ ] 监控 GitHub Actions 构建进度
+- [ ] 获取 Windows .exe 安装程序下载链接
