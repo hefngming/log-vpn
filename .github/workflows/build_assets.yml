@@ -2,8 +2,7 @@ name: Build Assets
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -29,86 +28,52 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Install dependencies
-        run: pnpm install
-
-      # 关键步骤：如果项目中缺少 electron-builder 配置，则动态创建一个基础配置
-      - name: Ensure electron-builder config
+      # 核心修复：在构建前动态补全 package.json 关键字段
+      - name: Fix package.json for Electron
         shell: bash
         run: |
-          if [ ! -f "electron-builder.json" ] && [ ! -f "electron-builder.yml" ] && [ ! -f "electron-builder.js" ]; then
-            echo '{
-              "appId": "com.logvpn.official",
-              "productName": "LogVPN",
-              "directories": {
-                "output": "dist",
-                "buildResources": "assets"
-              },
-              "files": [
-                "dist/public/**/*",
-                "client-src/**/*",
-                "resources/**/*",
-                "package.json"
-              ],
-              "win": {
-                "target": "nsis"
-              },
-              "mac": {
-                "target": "dmg",
-                "hardenedRuntime": true,
-                "gatekeeperAssess": false
-              },
-              "nsis": {
-                "oneClick": false,
-                "allowToChangeInstallationDirectory": true
-              }
-            }' > electron-builder.json
-            echo "Created temporary electron-builder.json"
-          fi
+          node -e "
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          pkg.description = 'LogVPN Official Client';
+          pkg.author = 'LogVPN';
+          pkg.main = 'client-src/main.ts';
+          pkg.build = {
+            appId: 'com.logvpn.official',
+            productName: 'LogVPN',
+            directories: { output: 'dist_electron' },
+            win: { target: 'nsis' },
+            mac: { target: 'dmg' },
+            files: ['dist/**/*', 'client-src/**/*', 'resources/**/*']
+          };
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
+
+      - name: Install Dependencies
+        run: |
+          pnpm install
+          pnpm add -D electron electron-builder tsx
 
       - name: Build Frontend
         run: pnpm run build
 
-      - name: Download v2ray Core (Windows)
-        if: matrix.os == 'windows-latest'
+      - name: Download v2ray Core
         shell: pwsh
         run: |
-          $v2ray_version = "v5.14.1"
           $dest = "resources/v2ray"
           if (!(Test-Path $dest)) { New-Item -ItemType Directory -Force -Path $dest }
-          $url = "https://github.com/v2fly/v2ray-core/releases/download/$v2ray_version/v2ray-windows-64.zip"
+          $url = if ('${{ matrix.os }}' -eq 'windows-latest') { 'https://github.com/v2fly/v2ray-core/releases/download/v5.14.1/v2ray-windows-64.zip' } else { 'https://github.com/v2fly/v2ray-core/releases/download/v5.14.1/v2ray-macos-64.zip' }
           Invoke-WebRequest -Uri $url -OutFile v2ray.zip
           Expand-Archive -Path v2ray.zip -DestinationPath $dest -Force
-          Remove-Item v2ray.zip
 
-      - name: Download v2ray Core (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          V2RAY_VERSION="v5.14.1"
-          DEST="resources/v2ray"
-          mkdir -p $DEST
-          URL="https://github.com/v2fly/v2ray-core/releases/download/$V2RAY_VERSION/v2ray-macos-64.zip"
-          curl -L $URL -o v2ray.zip
-          unzip v2ray.zip -d $DEST
-          rm v2ray.zip
-
-      # 使用 npx 直接运行 electron-builder，避免依赖未正确安装在 path 中的问题
-      - name: Build Electron App (Windows)
-        if: matrix.os == 'windows-latest'
-        run: npx electron-builder --windows nsis --x64
+      - name: Build Electron App
+        run: npx electron-builder --${{ matrix.os == 'windows-latest' && 'win' || 'mac' }} --x64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Electron App (macOS)
-        if: matrix.os == 'macos-latest'
-        run: npx electron-builder --macos dmg --x64 --arm64
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: LogVPN-${{ matrix.os }}-Assets
-          path: |
-            dist/*.exe
-            dist/*.dmg
+          name: LogVPN-${{ matrix.os }}
+          path: dist_electron/*.${{ matrix.os == 'windows-latest' && 'exe' || 'dmg' }}
