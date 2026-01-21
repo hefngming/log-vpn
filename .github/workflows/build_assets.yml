@@ -2,59 +2,38 @@ name: Build Assets
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false # 确保 Windows 不受 macOS 失败影响
-      matrix:
-        os: [windows-latest, macos-latest]
-
+    runs-on: windows-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
-      - name: Setup Node.js
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'pnpm'
 
-      - name: Install pnpm
-        run: npm install -g pnpm
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
 
-      - name: Install Dependencies
-        run: |
-          pnpm install --no-frozen-lockfile
-          pnpm add -D electron electron-builder esbuild
-
-      - name: Build Frontend
-        run: pnpm run build:renderer
-
-      - name: Build Electron Main
-        run: pnpm run build:main
-
-      - name: Download v2ray Core
-        shell: pwsh
-        run: |
-          $dest = "resources/v2ray"
-          if (!(Test-Path $dest)) { New-Item -ItemType Directory -Force -Path $dest }
-          $url = if ('${{ matrix.os }}' -eq 'windows-latest') { 'https://github.com/v2fly/v2ray-core/releases/download/v5.14.1/v2ray-windows-64.zip' } else { 'https://github.com/v2fly/v2ray-core/releases/download/v5.14.1/v2ray-macos-64.zip' }
-          Invoke-WebRequest -Uri $url -OutFile v2ray.zip
-          Expand-Archive -Path v2ray.zip -DestinationPath $dest -Force
-
-      - name: Build Electron App
-        run: npx electron-builder --${{ matrix.os == 'windows-latest' && 'win' || 'mac' }} --x64
+      - name: Build
+        run: pnpm run build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: LogVPN-${{ matrix.os }}
-          path: dist_electron/*.${{ matrix.os == 'windows-latest' && 'exe' || 'dmg' }}
+          name: LogVPN-windows-latest
+          path: dist/*.exe
