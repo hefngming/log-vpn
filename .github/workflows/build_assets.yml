@@ -11,6 +11,8 @@ jobs:
     name: Build ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      # 关键优化：即使一个平台失败，也不取消其他平台的构建
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest]
 
@@ -24,15 +26,30 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
           version: 10
+          # 确保 pnpm 可执行文件被添加到 PATH
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install
+        # 优化：使用 --frozen-lockfile 确保环境一致性
+        run: pnpm install --frozen-lockfile
 
       - name: Build Frontend
         run: pnpm run build
@@ -43,6 +60,7 @@ jobs:
         run: |
           $v2ray_version = "v5.14.1"
           $url = "https://github.com/v2fly/v2ray-core/releases/download/$v2ray_version/v2ray-windows-64.zip"
+          if (!(Test-Path "resources/v2ray")) { New-Item -ItemType Directory -Force -Path "resources/v2ray" }
           Invoke-WebRequest -Uri $url -OutFile v2ray.zip
           Expand-Archive -Path v2ray.zip -DestinationPath resources/v2ray -Force
           Remove-Item v2ray.zip
@@ -52,8 +70,8 @@ jobs:
         run: |
           V2RAY_VERSION="v5.14.1"
           URL="https://github.com/v2fly/v2ray-core/releases/download/$V2RAY_VERSION/v2ray-macos-64.zip"
-          curl -L $URL -o v2ray.zip
           mkdir -p resources/v2ray
+          curl -L $URL -o v2ray.zip
           unzip v2ray.zip -d resources/v2ray
           rm v2ray.zip
 
@@ -77,3 +95,4 @@ jobs:
             dist/*.exe
             dist/*.dmg
             dist/*.zip
+            dist/*.blockmap
