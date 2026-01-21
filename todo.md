@@ -641,3 +641,11 @@
 - [x] 验证打包后的文件结构（dist_electron, dist/public）
 - [x] 修复发现的问题（添加多路径尝试逻辑）
 - [ ] 触发新构建并验证
+
+## GitHub Actions 自动发布 Release
+- [x] 创建自动发布 Release 的工作流文件（.github/workflows/release.yml）
+- [x] 配置 tag 触发条件（push tags v*）
+- [x] 添加文件校验和计算（MD5 + SHA256）
+- [x] 生成 Release 说明模板（自动生成）
+- [x] 创建 Release 发布指南文档（RELEASE_GUIDE.md）
+- [ ] 用户测试工作流（推送 tag 触发）
