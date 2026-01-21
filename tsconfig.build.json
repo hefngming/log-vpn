@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist_electron",
+    "rootDir": "client-src",
+    "module": "ESNext",
+    "target": "ES2020",
+    "moduleResolution": "node",
+    "allowJs": false,
+    "declaration": false
+  },
+  "include": ["client-src/**/*"]
+}
