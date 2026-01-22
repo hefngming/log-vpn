@@ -1,5 +1,5 @@
 // client-src/main.ts
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, dialog } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -15,41 +15,25 @@ function createWindow() {
     }
   });
   if (app.isPackaged) {
-    const pathsToTry = [
-      path.join(__dirname, "..", "dist", "index.html"),
-      path.join(__dirname, "dist", "index.html")
-    ];
-    let loaded = false;
-    for (const htmlPath of pathsToTry) {
-      if (fs.existsSync(htmlPath)) {
-        console.log(`[Main] Found index.html at: ${htmlPath}`);
-        win.loadFile(htmlPath).catch((err) => {
-          console.error(`[Main] Failed to load ${htmlPath}:`, err);
-        });
-        loaded = true;
-        break;
-      } else {
-        console.warn(`[Main] Path does not exist: ${htmlPath}`);
-      }
-    }
-    if (!loaded) {
-      const errorHtml = `
-        <html>
-          <body style="font-family: sans-serif; padding: 20px;">
-            <h1>Failed to load index.html</h1>
-            <p>__dirname: ${__dirname}</p>
-            <p>Tried paths:</p>
-            <ul>
-              ${pathsToTry.map((p) => `<li>${p}</li>`).join("")}
-            </ul>
-          </body>
-        </html>
-      `;
-      win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(errorHtml)}`);
+    const possiblePath1 = path.join(__dirname, "../dist/index.html");
+    const possiblePath2 = path.join(__dirname, "dist/index.html");
+    const possiblePath3 = path.join(process.resourcesPath, "app.asar/dist/index.html");
+    let finalPath = "";
+    if (fs.existsSync(possiblePath1)) finalPath = possiblePath1;
+    else if (fs.existsSync(possiblePath2)) finalPath = possiblePath2;
+    else if (fs.existsSync(possiblePath3)) finalPath = possiblePath3;
+    if (!finalPath) {
+      dialog.showErrorBox("\u6587\u4EF6\u7F3A\u5931", `\u5728\u4EE5\u4E0B\u8DEF\u5F84\u90FD\u6CA1\u627E\u5230\u7F51\u9875\u6587\u4EF6:
+1: ${possiblePath1}
+2: ${possiblePath2}
+3: ${possiblePath3}`);
+    } else {
+      win.loadFile(finalPath);
     }
   } else {
     win.loadURL("http://localhost:5173");
   }
+  win.webContents.openDevTools();
 }
 app.whenReady().then(createWindow);
 app.on("window-all-closed", () => {
