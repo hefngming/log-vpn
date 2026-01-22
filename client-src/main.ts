@@ -17,13 +17,15 @@ function createWindow() {
     minHeight: 600,
     show: false, // 先隐藏，等准备好了再显示，防止白屏
     webPreferences: {
-      nodeIntegration: true, // 允许使用 node 接口
-      contextIsolation: false, // 为了兼容性暂时关闭隔离，确保界面逻辑能跑通
+      nodeIntegration: false, // 安全性：禁用 node 集成
+      contextIsolation: true,  // 安全性：启用上下文隔离
       preload: path.join(__dirname, 'preload.js'), 
     },
     title: 'LogVPN',
-    // 确保图标路径存在，若打包报错可暂时注释掉此行
-    // icon: path.join(__dirname, '../resources/icon.png'), 
+    // 图标路径（开发和生产环境自适应）
+    icon: app.isPackaged 
+      ? path.join(process.resourcesPath, 'icon.png')
+      : path.join(__dirname, '../resources/icon.png'), 
   });
 
   // 【核心修复：判断是否打包环境】
@@ -36,9 +38,13 @@ function createWindow() {
   } else {
     // 生产模式：直接加载绝对路径
     // 注意：dist 文件夹应该在 dist_electron 的同级目录
-    const indexPath = path.join(__dirname, '../dist/index.html');
+    const indexPath = path.join(__dirname, '../dist/public/index.html');
+    console.log('[LogVPN] Loading HTML from:', indexPath);
+    console.log('[LogVPN] __dirname:', __dirname);
+    console.log('[LogVPN] app.isPackaged:', app.isPackaged);
     mainWindow.loadFile(indexPath).catch((err) => {
-      console.error('无法加载页面:', err);
+      console.error('[LogVPN] 无法加载页面:', err);
+      console.error('[LogVPN] 尝试的路径:', indexPath);
     });
   }
 
