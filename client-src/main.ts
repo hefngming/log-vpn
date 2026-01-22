@@ -1,219 +1,212 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
+import { app, BrowserWindow, dialog } from "electron";
+import path from "path";
+import fs from "fs";
 
-// 解决 ES 模块下 __dirname 丢失的问题
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const isDev = process.env.NODE_ENV === "development";
+const isPackaged = app.isPackaged;
+
+console.log("============================================================");
+console.log("[LogVPN] Application Starting...");
+console.log("[LogVPN] isPackaged:", isPackaged);
+console.log("[LogVPN] isDev:", isDev);
+console.log("[LogVPN] __dirname:", __dirname);
+console.log("[LogVPN] process.cwd():", process.cwd());
+console.log("[LogVPN] app.getAppPath():", app.getAppPath());
+console.log("[LogVPN] process.resourcesPath:", process.resourcesPath);
+console.log("============================================================");
 
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow() {
-  // 创建浏览器窗口
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    minWidth: 900,
-    minHeight: 600,
-    show: false, // 先隐藏，等准备好了再显示，防止白屏
     webPreferences: {
-      nodeIntegration: false, // 安全性：禁用 node 集成
-      contextIsolation: true,  // 安全性：启用上下文隔离
-      preload: path.join(__dirname, 'preload.js'), 
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
     },
-    title: 'LogVPN',
-    // 图标路径（开发和生产环境自适应）
-    icon: app.isPackaged 
-      ? path.join(process.resourcesPath, 'icon.png')
-      : path.join(__dirname, '../resources/icon.png'), 
+    // 设置图标（开发和生产环境自适应）
+    icon: isPackaged
+      ? path.join(process.resourcesPath, "icon.png")
+      : path.join(__dirname, "../resources/icon.png"),
   });
 
-  // 【核心修复：判断是否打包环境】
-  const isPackaged = app.isPackaged;
-  const isDev = process.env.NODE_ENV === 'development';
+  // ============================================================
+  // 极限调试：强制打开 DevTools（即使在生产环境）
+  // ============================================================
+  console.log("[LogVPN] 🔧 EXTREME DEBUG MODE: Opening DevTools...");
+  mainWindow.webContents.openDevTools();
 
-  console.log('='.repeat(60));
-  console.log('[LogVPN] Application Starting...');
-  console.log('[LogVPN] isPackaged:', isPackaged);
-  console.log('[LogVPN] isDev:', isDev);
-  console.log('[LogVPN] __dirname:', __dirname);
-  console.log('[LogVPN] process.resourcesPath:', process.resourcesPath);
-  console.log('[LogVPN] app.getAppPath():', app.getAppPath());
-  console.log('='.repeat(60));
-
+  // 加载 HTML 文件
   if (!isPackaged && isDev) {
-    // 开发模式：加载 Vite 开发服务器
-    console.log('[LogVPN] Loading from Vite dev server: http://localhost:5173');
-    mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools();
+    console.log("[LogVPN] Loading from Vite dev server: http://localhost:5173");
+    mainWindow.loadURL("http://localhost:5173");
   } else {
-    // 生产模式：加载打包后的 HTML 文件
-    // 
-    // 关键理解：
-    // 1. electron-builder 会将 dist/ 和 dist_electron/ 打包进 app.asar
-    // 2. __dirname 在打包后指向 app.asar/dist_electron
-    // 3. HTML 文件在 app.asar/dist/public/index.html
-    // 4. 所以相对路径是 ../dist/public/index.html
-    //
-    // 路径计算：
-    // __dirname = /path/to/app.asar/dist_electron
-    // indexPath = /path/to/app.asar/dist/public/index.html
-    
-    const indexPath = path.join(__dirname, '../dist/public/index.html');
-    
-    console.log('[LogVPN] Attempting to load HTML file...');
-    console.log('[LogVPN] Calculated path:', indexPath);
-    
-    // 检查文件是否存在（仅用于调试）
-    try {
-      const exists = fs.existsSync(indexPath);
-      console.log('[LogVPN] File exists:', exists);
-      
-      if (!exists) {
-        // 尝试列出可能的路径
-        const possiblePaths = [
-          path.join(__dirname, '../dist/public/index.html'),
-          path.join(__dirname, '../dist/index.html'),
-          path.join(__dirname, '../../dist/public/index.html'),
-          path.join(app.getAppPath(), 'dist/public/index.html'),
-          path.join(process.resourcesPath, 'app.asar/dist/public/index.html'),
-        ];
-        
-        console.log('[LogVPN] Trying alternative paths:');
-        possiblePaths.forEach((p, i) => {
-          const exists = fs.existsSync(p);
-          console.log(`[LogVPN]   ${i + 1}. ${p} - ${exists ? 'EXISTS' : 'NOT FOUND'}`);
-        });
+    // ============================================================
+    // 极限调试：尝试所有可能的路径
+    // ============================================================
+    const possiblePaths = [
+      path.join(__dirname, "../dist/public/index.html"),
+      path.join(__dirname, "../dist/index.html"),
+      path.join(__dirname, "../../dist/public/index.html"),
+      path.join(__dirname, "dist/public/index.html"),
+      path.join(app.getAppPath(), "dist/public/index.html"),
+      path.join(app.getAppPath(), "dist/index.html"),
+      path.join(process.resourcesPath, "app.asar/dist/public/index.html"),
+      path.join(process.resourcesPath, "app/dist/public/index.html"),
+      path.join(process.cwd(), "dist/public/index.html"),
+    ];
+
+    console.log("[LogVPN] ============================================================");
+    console.log("[LogVPN] 🔍 EXTREME DEBUG: Checking all possible paths...");
+    console.log("[LogVPN] ============================================================");
+
+    let foundPath: string | null = null;
+    const pathResults: string[] = [];
+
+    for (let i = 0; i < possiblePaths.length; i++) {
+      const testPath = possiblePaths[i];
+      const exists = fs.existsSync(testPath);
+      const result = `${i + 1}. ${exists ? "✅ EXISTS" : "❌ NOT FOUND"}: ${testPath}`;
+      console.log(`[LogVPN] ${result}`);
+      pathResults.push(result);
+
+      if (exists && !foundPath) {
+        foundPath = testPath;
+        console.log(`[LogVPN] 🎯 FOUND VALID PATH: ${foundPath}`);
       }
-    } catch (err) {
-      console.error('[LogVPN] Error checking file existence:', err);
     }
-    
-    // 加载文件
-    mainWindow.loadFile(indexPath).catch((err) => {
-      console.error('[LogVPN] ❌ Failed to load page!');
-      console.error('[LogVPN] Error:', err);
-      console.error('[LogVPN] Attempted path:', indexPath);
+
+    console.log("[LogVPN] ============================================================");
+
+    if (foundPath) {
+      console.log(`[LogVPN] ✅ Loading HTML from: ${foundPath}`);
       
-      // 显示错误页面
-      mainWindow?.loadURL(`data:text/html;charset=utf-8,
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>LogVPN - Error</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              height: 100vh;
-              margin: 0;
-              background: #f5f5f5;
-            }
-            .error-container {
-              background: white;
-              padding: 40px;
-              border-radius: 8px;
-              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-              max-width: 600px;
-            }
-            h1 { color: #e74c3c; }
-            code {
-              background: #f8f8f8;
-              padding: 2px 6px;
-              border-radius: 3px;
-              font-family: monospace;
-            }
-            pre {
-              background: #f8f8f8;
-              padding: 15px;
-              border-radius: 5px;
-              overflow-x: auto;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="error-container">
-            <h1>⚠️ LogVPN 启动失败</h1>
-            <p>无法加载应用程序界面。</p>
-            <p><strong>错误信息：</strong></p>
-            <pre>${err.message}</pre>
-            <p><strong>尝试的路径：</strong></p>
-            <code>${indexPath}</code>
-            <p style="margin-top: 20px; color: #666;">
-              请联系技术支持或重新安装应用程序。
-            </p>
-          </div>
-        </body>
-        </html>
-      `);
-    });
+      mainWindow.loadFile(foundPath).catch((err) => {
+        console.error("[LogVPN] ❌ loadFile() failed:", err);
+        
+        // 显示系统对话框错误
+        dialog.showErrorBox(
+          "LogVPN - Load Error",
+          `Failed to load HTML file!\n\nPath: ${foundPath}\n\nError: ${err.message}\n\nCheck console for details.`
+        );
+      });
+    } else {
+      // ============================================================
+      // 极限调试：没有找到任何有效路径，显示详细错误对话框
+      // ============================================================
+      const errorMessage = [
+        "❌ CRITICAL ERROR: Cannot find index.html!",
+        "",
+        "Tried paths:",
+        ...pathResults,
+        "",
+        "Environment:",
+        `- __dirname: ${__dirname}`,
+        `- app.getAppPath(): ${app.getAppPath()}`,
+        `- process.resourcesPath: ${process.resourcesPath}`,
+        `- process.cwd(): ${process.cwd()}`,
+        "",
+        "Please report this error with the above information.",
+      ].join("\n");
+
+      console.error("[LogVPN] " + errorMessage);
+
+      // 显示系统对话框
+      dialog.showErrorBox("LogVPN - Critical Error", errorMessage);
+
+      // 加载错误页面（内联 HTML）
+      mainWindow.loadURL(
+        `data:text/html;charset=utf-8,${encodeURIComponent(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>LogVPN - Error</title>
+            <style>
+              body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 40px;
+                margin: 0;
+              }
+              .container {
+                max-width: 800px;
+                margin: 0 auto;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 20px;
+                padding: 40px;
+                backdrop-filter: blur(10px);
+              }
+              h1 { font-size: 32px; margin-bottom: 20px; }
+              pre {
+                background: rgba(0, 0, 0, 0.3);
+                padding: 20px;
+                border-radius: 10px;
+                overflow-x: auto;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                font-size: 12px;
+                line-height: 1.6;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>❌ LogVPN - Critical Error</h1>
+              <p>Cannot find index.html file!</p>
+              <pre>${errorMessage.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>
+              <p>Please check the console (F12) for more details.</p>
+            </div>
+          </body>
+          </html>
+        `)}`
+      );
+    }
   }
 
-  // 窗口准备好后再显示
-  mainWindow.once('ready-to-show', () => {
-    console.log('[LogVPN] ✅ Window ready to show');
+  // 监听加载事件
+  mainWindow.webContents.on("did-finish-load", () => {
+    console.log("[LogVPN] ✅ Page loaded successfully!");
+  });
+
+  mainWindow.webContents.on("did-fail-load", (event, errorCode, errorDescription, validatedURL) => {
+    console.error("[LogVPN] ❌ Page failed to load!");
+    console.error("[LogVPN] Error code:", errorCode);
+    console.error("[LogVPN] Error description:", errorDescription);
+    console.error("[LogVPN] Validated URL:", validatedURL);
+
+    dialog.showErrorBox(
+      "LogVPN - Load Failed",
+      `Failed to load page!\n\nURL: ${validatedURL}\nError Code: ${errorCode}\nDescription: ${errorDescription}`
+    );
+  });
+
+  // 窗口准备显示时
+  mainWindow.once("ready-to-show", () => {
+    console.log("[LogVPN] ✅ Window ready to show");
     mainWindow?.show();
-    mainWindow?.focus();
   });
 
-  // 监听加载完成事件
-  mainWindow.webContents.on('did-finish-load', () => {
-    console.log('[LogVPN] ✅ Page loaded successfully');
-  });
-
-  // 监听加载失败事件
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-    console.error('[LogVPN] ❌ Page failed to load');
-    console.error('[LogVPN] Error code:', errorCode);
-    console.error('[LogVPN] Error description:', errorDescription);
-    console.error('[LogVPN] URL:', validatedURL);
-  });
-
-  mainWindow.on('closed', () => {
+  mainWindow.on("closed", () => {
     mainWindow = null;
   });
 }
 
-// 初始化应用
 app.whenReady().then(() => {
-  console.log('[LogVPN] App ready, creating window...');
+  console.log("[LogVPN] App is ready, creating window...");
   createWindow();
 
-  app.on('activate', () => {
+  app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
   });
 });
 
-// 退出应用处理
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
     app.quit();
   }
 });
-
-// IPC 通信处理
-ipcMain.handle('get-app-version', () => {
-  return app.getVersion();
-});
-
-ipcMain.handle('get-app-path', () => {
-  return app.getPath('userData');
-});
-
-// 单实例锁定
-const gotTheLock = app.requestSingleInstanceLock();
-if (!gotTheLock) {
-  app.quit();
-} else {
-  app.on('second-instance', () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-    }
-  });
-}
