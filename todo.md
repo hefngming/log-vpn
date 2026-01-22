@@ -553,3 +553,10 @@
 - [x] 集成 v2ray 核心到项目
 - [x] 配置 GitHub Actions 自动构建
 - [ ] 推送到 GitHub 并触发构建
+
+
+## 修复 GitHub Actions 构建错误
+- [ ] 修复 package.json 重复的 nsis 配置
+- [ ] 检查完整的构建错误日志
+- [ ] 修复所有构建错误
+- [ ] 推送并重新触发构建
