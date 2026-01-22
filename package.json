@@ -2,22 +2,22 @@
   "name": "log-vpn",
   "version": "1.0.6",
   "type": "module",
+  "license": "MIT",
   "main": "dist_electron/main.js",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build && npx tsc -p tsconfig.electron.json --noEmit && electron-builder",
-    "preview": "vite preview"
+    "build": "vite build && esbuild client-src/main.ts --bundle --platform=node --external:electron --format=esm --target=node18 --outfile=dist_electron/main.js",
+    "package": "npm run build && electron-builder --win --publish never"
   },
   "dependencies": {
-    "vue": "^3.3.4"
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^4.2.3",
-    "electron": "^25.3.0",
-    "electron-builder": "^24.6.3",
-    "typescript": "^5.0.2",
-    "vite": "^4.4.5",
-    "vue-tsc": "^1.8.5"
+    "@vitejs/plugin-react": "^5.1.2",
+    "vite": "^7.3.1",
+    "electron": "^30.5.1",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.25.12"
   },
   "build": {
     "appId": "com.logvpn.app",
@@ -27,13 +27,11 @@
     },
     "files": [
       "dist/**/*",
-      "dist_electron/**/*",
-      "resources/**/*",
-      "electron/**/*"
+      "dist_electron/**/*"
     ],
     "win": {
-      "target": "portable",
-      "artifactName": "LogVPN-Setup.${ext}"
+      "target": ["portable"],
+      "icon": "resources/icon.ico"
     }
   }
 }

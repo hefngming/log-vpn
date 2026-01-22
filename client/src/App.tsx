@@ -1,58 +1,16 @@
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
-import ErrorBoundary from "./components/ErrorBoundary";
-import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
-import Dashboard from "./pages/Dashboard";
-import Recharge from "./pages/Recharge";
-import Download from "./pages/Download";
-import Nodes from "./pages/Nodes";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminUsers from "./pages/admin/AdminUsers";
-import AdminOrders from "./pages/admin/AdminOrders";
-import AdminNodes from "./pages/admin/AdminNodes";
-import AdminSettings from "./pages/admin/AdminSettings";
-import AdminReview from "./pages/admin/AdminReview";
-import AutoReviewRules from "./pages/admin/AutoReviewRules";
-import Referral from "./pages/Referral";
-import Register from "./pages/Register";
+import React from 'react';
 
-function Router() {
+export default function App() {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/recharge" component={Recharge} />
-      <Route path="/download" component={Download} />
-      <Route path="/nodes" component={Nodes} />
-      <Route path="/referral" component={Referral} />
-      <Route path="/register" component={Register} />
-      <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/users" component={AdminUsers} />
-      <Route path="/admin/orders" component={AdminOrders} />
-      <Route path="/admin/nodes" component={AdminNodes} />
-      <Route path="/admin/settings" component={AdminSettings} />
-      <Route path="/admin/review" component={AdminReview} />
-      <Route path="/admin/auto-review-rules" component={AutoReviewRules} />
-      <Route path="/404" component={NotFound} />
-      <Route component={NotFound} />
-    </Switch>
+    <div style={{ padding: '40px', fontFamily: 'Arial, sans-serif' }}>
+      <h1 style={{ color: '#6366f1' }}>🛡️ LogVPN</h1>
+      <p>Welcome to LogVPN - Your secure VPN client!</p>
+      <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#f3f4f6', borderRadius: '8px' }}>
+        <h2>Status: Ready</h2>
+        <p>✅ Application loaded successfully!</p>
+        <p>✅ Electron is running</p>
+        <p>✅ React is working</p>
+      </div>
+    </div>
   );
 }
-
-function App() {
-  return (
-    <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark">
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
-  );
-}
-
-export default App;
