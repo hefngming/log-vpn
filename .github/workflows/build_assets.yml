@@ -1,31 +1,30 @@
-name: Manual Final Build
+name: Final Manual Build
 on:
-  workflow_dispatch: # 开启手动点按钮功能
+  workflow_dispatch: # 手动触发开关
 
 jobs:
   build:
     runs-on: windows-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # 升级到 v4
 
       - name: Install Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4 # 升级到 v4
         with:
           node-version: 18
 
       - name: Install Dependencies
-        # 使用 legacy-peer-deps 防止 Manus 留下的包冲突导致安装失败
         run: npm install --legacy-peer-deps
 
       - name: Run Official Build
-        # 这会跑你 package.json 里的 vite build && tsc && electron-builder
+        # 这会严格执行你 package.json 里的路径：dist_electron/main.js
         run: npm run build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Save My Installer
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4 # 关键修复：升级到 v4 解决报错
         with:
           name: LogVPN-Fixed-Package
           path: release/*.exe
