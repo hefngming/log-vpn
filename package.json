@@ -1,6 +1,6 @@
 {
   "name": "log-vpn",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -138,8 +138,7 @@
     "files": [
       "dist/**/*",
       "dist_electron/**/*",
-      "package.json",
-      "!node_modules/**/*"
+      "resources/**/*"
     ],
     "extraResources": [
       {
