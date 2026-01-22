@@ -1,28 +1,27 @@
 {
-  "name": "log-vpn",
-  "version": "1.0.6",
-  "type": "module",
-  "main": "dist_electron/main.js",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build && tsc -p tsconfig.electron.json && electron-builder",
+  "name": "log-vpn"
+  "version": "1.0.6"
+  "type": "module"
+  "main": "dist_electron/main.js"
+   "scripts": {
+    "dev": "vite"
+    "build": "vite build && npx tsc -p tsconfig.electron.json --noEmit && electron-builder"
     "preview": "vite preview"
-  },
+  }
   "build": {
-    "appId": "com.logvpn.app",
-    "productName": "LogVPN",
+    "appId": "com.logvpn.app"
+    "productName": "LogVPN"
     "directories": {
-      "output": "release",
-      "buildResources": "resources"
-    },
+      "output": "release"
+    }
     "files": [
       "dist/**/*",
       "dist_electron/**/*",
-      "resources/**/*"
-    ],
+      "resources/**/*",
+      "electron/**/*"
+    ]
     "win": {
       "target": "portable"
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "LogVPN-Setup.${ext}"
     }
   }
-}
