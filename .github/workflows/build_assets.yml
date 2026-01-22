@@ -1,31 +1,31 @@
-name: Final Build LogVPN
+name: Manual Final Build
 on:
-  workflow_dispatch: # 允许我们手动点按钮运行
+  workflow_dispatch: # 开启手动点按钮功能
 
 jobs:
-  build_windows:
+  build:
     runs-on: windows-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
+      - name: Install Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
-          cache: 'npm'
 
       - name: Install Dependencies
+        # 使用 legacy-peer-deps 防止 Manus 留下的包冲突导致安装失败
         run: npm install --legacy-peer-deps
 
-      - name: Build and Package
-        # 强制运行你 package.json 里的构建逻辑
+      - name: Run Official Build
+        # 这会跑你 package.json 里的 vite build && tsc && electron-builder
         run: npm run build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload EXE
+      - name: Save My Installer
         uses: actions/upload-artifact@v3
         with:
-          name: LogVPN-Windows-Package
+          name: LogVPN-Fixed-Package
           path: release/*.exe
