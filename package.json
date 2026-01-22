@@ -32,7 +32,7 @@
       "electron/**/*"
     ],
     "win": {
-      "target": "portable",
+      "target": "portable"
       "artifactName": "LogVPN-Setup.${ext}"
     }
   }
