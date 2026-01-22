@@ -21,7 +21,7 @@
       "resources/**/*"
     ],
     "win": {
-      "target": "portable",
+      "target": "portable"
       "artifactName": "${productName}-Setup-${version}.${ext}"
     }
   }
