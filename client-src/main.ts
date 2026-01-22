@@ -1,167 +1,166 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
-import * as path from 'path';
-import * as url from 'url';
-import * as Sentry from '@sentry/electron/main';
+import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+import { spawn, ChildProcess } from 'child_process';
 
-// 初始化 Sentry
-Sentry.init({
-  dsn: process.env.SENTRY_DSN || '', // 从环境变量读取 DSN
-  environment: process.env.NODE_ENV || 'production',
-  enabled: !!process.env.SENTRY_DSN, // 只在配置了 DSN 时启用
-  tracesSampleRate: 1.0, // 性能监控采样率
-  beforeSend(event) {
-    // 在开发模式下不发送错误
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Sentry] Event:', event);
-      return null;
-    }
-    return event;
-  },
-});
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+let v2rayProcess: ChildProcess | null = null;
 let mainWindow: BrowserWindow | null = null;
 
-async function createWindow() {
-  console.log('[Main] Creating window...');
-  
-  // 创建浏览器窗口
+function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    minWidth: 900,
-    minHeight: 600,
-    show: true, // 立即显示窗口
     webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'), // 如果需要 preload 脚本
+      nodeIntegration: true,
+      contextIsolation: false,
+      preload: path.join(__dirname, 'preload.js'),
     },
-    title: 'LogVPN',
-    icon: path.join(__dirname, '..', 'resources', 'icon-1024.png'), // 应用图标
   });
-  
-  console.log('[Main] Window created successfully');
 
-  // 加载前端页面
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[Main] Loading development server...');
-    // 开发模式：加载 Vite 开发服务器
-    mainWindow.loadURL('http://localhost:5173');
-    // 打开开发者工具
-    mainWindow.webContents.openDevTools();
+  if (app.isPackaged) {
+    const htmlPath = path.join(__dirname, '../dist/index.html');
+    console.log('[Electron] Loading:', htmlPath);
+    console.log('[Electron] File exists:', fs.existsSync(htmlPath));
+    
+    if (fs.existsSync(htmlPath)) {
+      mainWindow.loadFile(htmlPath);
+    } else {
+      dialog.showErrorBox('Error', `Cannot find index.html at: ${htmlPath}`);
+    }
   } else {
-    // 生产模式：加载打包后的 HTML 文件
-    // 在打包后，__dirname 指向 resources/app.asar/dist_electron
-    // 前端文件在 resources/app.asar/dist/public
-    const indexPath = path.join(__dirname, '..', 'dist', 'public', 'index.html');
-    console.log('[Main] Loading production HTML from:', indexPath);
-    console.log('[Main] __dirname:', __dirname);
-    
-    // 检查文件是否存在并加载
-    const fs = require('fs');
-    console.log('[Main] Checking paths:');
-    console.log('[Main] - indexPath:', indexPath);
-    console.log('[Main] - process.resourcesPath:', process.resourcesPath);
-    console.log('[Main] - __dirname:', __dirname);
-    
-    // 尝试多个可能的路径
-    const possiblePaths = [
-      indexPath,
-      path.join(process.resourcesPath, 'app.asar', 'dist', 'public', 'index.html'),
-      path.join(process.resourcesPath, 'app', 'dist', 'public', 'index.html'),
-      path.join(__dirname, '..', '..', 'dist', 'public', 'index.html'),
-    ];
-    
-    let loaded = false;
-    for (const tryPath of possiblePaths) {
-      console.log('[Main] Trying path:', tryPath);
-      if (fs.existsSync(tryPath)) {
-        console.log('[Main] ✓ Found! Loading:', tryPath);
-        try {
-          await mainWindow.loadFile(tryPath);
-          loaded = true;
-          console.log('[Main] ✓ Successfully loaded');
-          break;
-        } catch (err) {
-          console.error('[Main] ✗ Failed to load:', err);
+    mainWindow.loadURL('http://localhost:5173');
+  }
+
+  // Open DevTools for debugging
+  mainWindow.webContents.openDevTools();
+}
+
+// IPC 处理：连接 VPN
+ipcMain.handle('connect-vpn', async (event, nodeId: number) => {
+  try {
+    // 获取节点配置
+    const response = await fetch(`https://dj.siumingho.dpdns.org/api/trpc/nodes.getEncrypted`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        json: { userId: 1 } // TODO: 从登录状态获取真实 userId
+      }),
+    });
+
+    const data = await response.json();
+    const nodes = data.result?.data?.json || [];
+    const node = nodes.find((n: any) => n.id === nodeId);
+
+    if (!node) {
+      return { success: false, message: '节点不存在' };
+    }
+
+    // 解密节点配置（这里假设后端已经返回解密后的配置）
+    const config = JSON.parse(node.config);
+
+    // 生成 v2ray 配置文件
+    const v2rayConfigPath = path.join(app.getPath('userData'), 'v2ray-config.json');
+    const v2rayConfig = {
+      inbounds: [
+        {
+          port: 10808,
+          protocol: 'socks',
+          settings: {
+            udp: true
+          }
         }
-      } else {
-        console.log('[Main] ✗ Not found:', tryPath);
+      ],
+      outbounds: [
+        {
+          protocol: config.protocol || 'vless',
+          settings: config.settings,
+          streamSettings: config.streamSettings
+        }
+      ]
+    };
+
+    fs.writeFileSync(v2rayConfigPath, JSON.stringify(v2rayConfig, null, 2));
+
+    // 启动 v2ray
+    const v2rayPath = app.isPackaged
+      ? path.join(process.resourcesPath, 'v2ray-core', 'v2ray.exe')
+      : path.join(__dirname, '../v2ray-core', 'v2ray.exe');
+
+    if (!fs.existsSync(v2rayPath)) {
+      return { success: false, message: 'v2ray 核心文件不存在' };
+    }
+
+    // 停止之前的进程
+    if (v2rayProcess) {
+      v2rayProcess.kill();
+    }
+
+    v2rayProcess = spawn(v2rayPath, ['-config', v2rayConfigPath]);
+
+    v2rayProcess.on('error', (error) => {
+      console.error('[v2ray] Error:', error);
+      mainWindow?.webContents.send('vpn-error', error.message);
+    });
+
+    v2rayProcess.on('exit', (code) => {
+      console.log('[v2ray] Exited with code:', code);
+      mainWindow?.webContents.send('vpn-disconnected');
+    });
+
+    return { success: true, message: '连接成功' };
+  } catch (error: any) {
+    console.error('[connect-vpn] Error:', error);
+    return { success: false, message: error.message };
+  }
+});
+
+// IPC 处理：断开 VPN
+ipcMain.handle('disconnect-vpn', async () => {
+  try {
+    if (v2rayProcess) {
+      v2rayProcess.kill();
+      v2rayProcess = null;
+      return { success: true, message: '已断开连接' };
+    }
+    return { success: false, message: '未连接' };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+});
+
+// IPC 处理：获取流量统计
+ipcMain.handle('get-traffic-stats', async () => {
+  try {
+    // TODO: 实现流量统计功能
+    return {
+      success: true,
+      data: {
+        upload: 0,
+        download: 0,
+        total: 0
       }
-    }
-    
-    if (!loaded) {
-      console.error('[Main] ✗ FATAL: Could not find index.html in any location');
-      console.error('[Main] Please check the build configuration');
-    }
+    };
+  } catch (error: any) {
+    return { success: false, message: error.message };
   }
-  
-  // 监听页面加载事件
-  mainWindow.webContents.on('did-finish-load', () => {
-    console.log('[Main] Page loaded successfully');
-  });
-  
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    console.error('[Main] Page failed to load:', errorCode, errorDescription);
-  });
-
-  // 窗口关闭时的处理
-  mainWindow.on('closed', () => {
-    console.log('[Main] Window closed');
-    mainWindow = null;
-  });
-}
-
-// 当 Electron 完成初始化并准备创建浏览器窗口时调用
-app.whenReady().then(() => {
-  createWindow();
-
-  // 在 macOS 上，当点击 dock 图标且没有其他窗口打开时，重新创建窗口
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
 });
 
-// 当所有窗口都被关闭时退出应用（Windows 和 Linux）
+app.whenReady().then(createWindow);
+
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
+  // 退出前停止 v2ray
+  if (v2rayProcess) {
+    v2rayProcess.kill();
   }
+  if (process.platform !== 'darwin') app.quit();
 });
 
-// IPC 通信示例：处理来自渲染进程的消息
-ipcMain.handle('get-app-version', () => {
-  return app.getVersion();
-});
-
-ipcMain.handle('get-app-path', () => {
-  return app.getPath('userData');
-});
-
-// 防止应用多次启动
-const gotTheLock = app.requestSingleInstanceLock();
-
-if (!gotTheLock) {
-  app.quit();
-} else {
-  app.on('second-instance', () => {
-    // 当运行第二个实例时，聚焦到已存在的窗口
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-    }
-  });
-}
-
-// 处理未捕获的异常
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  Sentry.captureException(error);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  Sentry.captureException(reason);
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });

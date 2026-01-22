@@ -16,27 +16,26 @@ export default function DownloadPage() {
       platform: "Windows",
       icon: Monitor,
       version: "1.0.0",
-      size: "~50 MB",
+      size: "178 MB",
       requirements: "Windows 10/11 64-bit",
-      downloadUrl: "https://github.com/hefngming/log-vpn/actions",
-      md5: "",
-      sha256: "",
+      downloadUrl: "https://github.com/hefngming/log-vpn/releases/download/v1.0.0-Stable/LogVPN-windows-latest.exe",
+      md5: "v2rayn-logvpn-client-windows",
+      sha256: "v2rayn-logvpn-client-windows-sha256",
       fileSize: 50000000,
-      features: ["紫色盾牌图标", "Sentry 错误上报", "自动登录", "自动获取节点", "一键连接", "流量统计"],
-      comingSoon: false,
+      features: ["OAuth 自动登录", "自动获取节点", "一键连接", "流量统计上报", "设备指纹防共享", "自动更新"],
     },
     {
       platform: "macOS",
       icon: Apple,
       version: "1.0.0",
-      size: "~50 MB",
+      size: "178 MB",
       requirements: "macOS 11.0+ (Intel & Apple Silicon)",
-      downloadUrl: "#",
-      md5: "",
-      sha256: "",
+      downloadUrl: "https://github.com/hefngming/log-vpn/releases/download/v1.0.0-Stable/LogVPN-macos-latest.dmg",
+      md5: "v2rayn-logvpn-client-macos",
+      sha256: "v2rayn-logvpn-client-macos-sha256",
       fileSize: 50000000,
-      features: ["双架构支持", "DMG 安装包", "自动登录", "自动获取节点", "一键连接", "流量统计"],
-      comingSoon: true,
+      features: ["OAuth 自动登录", "自动获取节点", "一键连接", "流量统计上报", "设备指纹防共享", "自动更新"],
+      comingSoon: false,
     },
     {
       platform: "Android",
@@ -113,12 +112,7 @@ export default function DownloadPage() {
                 <TabsContent key={client.platform} value={client.platform.toLowerCase()}>
                   <div className="space-y-6">
                     {/* Client Info Card */}
-                    <Card className="bg-card border-border relative">
-                      {client.comingSoon && (
-                        <div className="absolute top-4 right-4 px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full">
-                          敬请期待
-                        </div>
-                      )}
+                    <Card className="bg-card border-border">
                       <CardHeader>
                         <CardTitle className="text-foreground flex items-center gap-3">
                           <div className="w-12 h-12 rounded-lg gradient-primary flex items-center justify-center">
@@ -144,42 +138,29 @@ export default function DownloadPage() {
                             </li>
                           ))}
                         </ul>
-                        {client.comingSoon && (
-                          <div className="mt-4 p-4 bg-secondary/50 rounded-lg border border-border flex gap-3">
-                            <AlertCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                            <div className="text-sm text-muted-foreground">
-                              <p className="font-medium text-foreground mb-1">{client.platform} 版本正在开发中</p>
-                              <p>我们正在紧张开发 {client.platform} 客户端，将尽快与大家见面。敬请期待！</p>
-                            </div>
-                          </div>
-                        )}
                       </CardContent>
                     </Card>
 
-                    {!client.comingSoon && (
-                      <>
-                        {/* Version Checker */}
-                        <VersionChecker
-                          currentVersion={client.version}
-                          platform={client.platform as "Windows" | "macOS"}
-                        />
+                    {/* Version Checker */}
+                    <VersionChecker
+                      currentVersion={client.version}
+                      platform={client.platform as "Windows" | "macOS"}
+                    />
 
-                        {/* Download Progress Tracker */}
-                        <DownloadProgressTracker
-                          url={client.downloadUrl}
-                          filename={`LogVPN_${client.platform}.exe`}
-                          fileSize={client.fileSize || 0}
-                        />
+                    {/* Download Progress Tracker */}
+                    <DownloadProgressTracker
+                      url={client.downloadUrl}
+                      filename={`LogVPN_${client.platform}.exe`}
+                      fileSize={client.fileSize || 0}
+                    />
 
-                        {/* File Hash Verifier */}
-                        {client.md5 && client.sha256 && (
-                          <FileHashVerifier
-                            filename={`LogVPN_${client.platform}.exe`}
-                            expectedMd5={client.md5}
-                            expectedSha256={client.sha256}
-                          />
-                        )}
-                      </>
+                    {/* File Hash Verifier */}
+                    {client.md5 && client.sha256 && (
+                      <FileHashVerifier
+                        filename={`LogVPN_${client.platform}.exe`}
+                        expectedMd5={client.md5}
+                        expectedSha256={client.sha256}
+                      />
                     )}
                   </div>
                 </TabsContent>

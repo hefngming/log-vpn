@@ -1,9 +1,0 @@
-{
-  "query": "-- 先删除可能存在的索引\nALTER TABLE nodes DROP INDEX IF EXISTS idx_xuiId;\n\n-- 添加唯一索引\nCREATE UNIQUE INDEX idx_xuiId ON nodes(xuiId);",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2niMBJFQbqWKXSJ.root --database ik4QKwpUJXHkdpgpXC9yL3 --execute -- 先删除可能存在的索引\nALTER TABLE nodes DROP INDEX IF EXISTS idx_xuiId;\n\n-- 添加唯一索引\nCREATE UNIQUE INDEX idx_xuiId ON nodes(xuiId);",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 871
-}

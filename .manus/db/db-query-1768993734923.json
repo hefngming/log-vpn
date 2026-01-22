@@ -1,9 +1,0 @@
-{
-  "query": "ALTER TABLE users \nADD COLUMN IF NOT EXISTS activeDeviceId VARCHAR(255),\nADD COLUMN IF NOT EXISTS activeDeviceSessionId VARCHAR(255),\nADD COLUMN IF NOT EXISTS lastActiveAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP;",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2niMBJFQbqWKXSJ.root --database ik4QKwpUJXHkdpgpXC9yL3 --execute ALTER TABLE users \nADD COLUMN IF NOT EXISTS activeDeviceId VARCHAR(255),\nADD COLUMN IF NOT EXISTS activeDeviceSessionId VARCHAR(255),\nADD COLUMN IF NOT EXISTS lastActiveAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP;",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 1301
-}

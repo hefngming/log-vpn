@@ -85,13 +85,6 @@
       "when": 1768910120128,
       "tag": "0011_salty_scarecrow",
       "breakpoints": true
-    },
-    {
-      "idx": 12,
-      "version": "5",
-      "when": 1768989927933,
-      "tag": "0012_famous_marrow",
-      "breakpoints": true
     }
   ]
 }

@@ -37,6 +37,16 @@ contextBridge.exposeInMainWorld('electron', {
   // Utility APIs
   openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
   showMessageBox: (options: any) => ipcRenderer.invoke('show-message-box', options),
+
+  // VPN connection APIs
+  connectVPN: (nodeId: number) => ipcRenderer.invoke('connect-vpn', nodeId),
+  disconnectVPN: () => ipcRenderer.invoke('disconnect-vpn'),
+  onVPNError: (callback: (message: string) => void) => {
+    ipcRenderer.on('vpn-error', (_, message) => callback(message));
+  },
+  onVPNDisconnected: (callback: () => void) => {
+    ipcRenderer.on('vpn-disconnected', () => callback());
+  },
 });
 
 /**

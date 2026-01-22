@@ -1,4 +1,4 @@
-name: Build Assets (Windows)
+name: Build Electron App
 
 on:
   push:
@@ -6,39 +6,21 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-windows:
-    name: Build Windows Installer
+  build:
     runs-on: windows-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: pnpm/action-setup@v2
         with:
           version: 8
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - run: pnpm install
+      - run: pnpm run build:renderer
+      - run: pnpm run build:main
+      - run: pnpm run package
+      - uses: actions/upload-artifact@v4
         with:
-          node-version: 20
-          cache: 'pnpm'
-
-      - name: Install Dependencies
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Build App
-        run: pnpm run build
-
-      - name: Package Windows with Electron Builder
-        run: pnpm run package
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Windows Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: LogVPN-Windows-Installer
+          name: LogVPN-Setup
           path: release/*.exe
-          if-no-files-found: error

@@ -105,18 +105,3 @@ temp/
 *.db
 *.sqlite
 *.sqlite3
-
-# Electron
-release/
-dist_electron/
-
-# Certificates (DO NOT COMMIT)
-certs/*.pfx
-certs/*.p12
-certs/*.cer
-certs/*.pem
-certs/*.key
-
-# macOS resources (optional, can be committed)
-# resources/*.icns
-# resources/*.png

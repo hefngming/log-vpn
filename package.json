@@ -138,16 +138,17 @@
       "node_modules/**/*",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "v2ray-core/",
+        "to": "v2ray-core/"
+      }
+    ],
     "win": {
       "target": [
         "nsis"
       ],
-      "icon": "resources/icon.ico",
-      "signingHashAlgorithms": [
-        "sha256"
-      ],
-      "certificateFile": "certs/windows-cert.pfx",
-      "certificatePassword": ""
+      "icon": "resources/icon.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -207,12 +208,6 @@
         "width": 540,
         "height": 380
       }
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
     }
   }
 }

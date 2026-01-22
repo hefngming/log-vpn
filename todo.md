@@ -542,119 +542,28 @@
 - [ ] 下载 .exe 并验证无 .ts 文件被调用
 - [ ] 提供新的下载链接
 
-## 新增功能 - macOS 客户端打包和 Windows 代码签名
-- [x] 添加 macOS 打包配置到 package.json
-- [x] 创建 macOS entitlements 文件
-- [x] 配置 macOS DMG 打包选项（双架构支持）
-- [x] 配置 Windows 代码签名（消除安全警告）
-- [x] 创建详细的代码签名配置指南
-- [x] 创建图标和证书目录说明文档
-- [ ] 添加实际的 macOS 图标文件（.icns）
-- [ ] 添加实际的 Windows 图标文件（.ico）
-- [ ] 购买并配置 Windows 代码签名证书
-- [ ] 更新 GitHub Actions 工作流支持 macOS 和 Windows 双平台打包
-- [ ] 测试 macOS 安装程序（.dmg）
-- [ ] 测试 Windows 签名安装程序（无安全警告）
 
-## Bug 修复 - macOS 构建失败和 Windows 应用无界面
-- [x] 诊断 macOS 构建失败原因（exit code 1）
-- [x] 修复 macOS 图标文件缺失问题（暂时移除图标配置）
-- [x] 修复 Windows 应用无界面问题（修正文件加载路径）
-- [x] 检查 Electron 主进程窗口创建代码
-- [ ] 测试 Windows 应用界面显示
-- [ ] 重新构建并测试 macOS 安装程序
+## Electron 客户端完整功能实现（v1.0.7）
+- [x] 实现登录界面（账号密码登录）
+- [x] 实现节点列表页面（显示节点名称）
+- [x] 实现节点获取和解密功能（调用 nodes.getEncrypted API）
+- [x] 实现一键连接/断开 VPN（调用 v2ray.exe）
+- [x] 实现流量监控（实时显示已用/总流量）
+- [ ] 实现管理员监控面板（查看所有用户状态）
+- [x] 集成 v2ray 核心到项目
+- [x] 配置 GitHub Actions 自动构建
+- [ ] 推送到 GitHub 并触发构建
 
-## 应用图标创建和配置
-- [x] 生成 LogVPN 应用图标设计（1024x1024 PNG）
-- [x] 转换为 Windows .ico 格式（多尺寸）
-- [x] 转换为 macOS .icns 格式（多尺寸）
-- [x] 配置 package.json 中的图标引用
-- [x] 配置 Electron 主进程中的图标引用
-- [ ] 测试 Windows 构建（带图标）
-- [ ] 测试 macOS 构建（带图标）
 
-## Bug 修复 - macOS 构建失败（添加图标后）
-- [x] 诊断 macOS 构建失败的具体错误信息
-- [x] 检查 .icns 文件格式是否正确
-- [x] 决定暂时移除 macOS 构建，仅保留 Windows 构建
-- [ ] 未来调试 macOS 构建问题（需要详细日志）
+## 修复 GitHub Actions 构建错误
+- [ ] 修复 package.json 重复的 nsis 配置
+- [ ] 检查完整的构建错误日志
+- [ ] 修复所有构建错误
+- [ ] 推送并重新触发构建
 
-## Bug 修复 - Windows 应用无界面（持续问题）
-- [x] 检查 Electron 主进程窗口创建逻辑
-- [x] 验证打包后的文件结构（dist/ 目录）
-- [x] 检查 package.json 中的 files 配置
-- [x] 添加详细的调试日志
-- [x] 修复 ready-to-show 问题（立即显示窗口）
-- [x] 添加文件存在检查和备用路径
-- [ ] 重新构建并验证
 
-## 深入排查 - Windows 窗口不显示（根本原因）
-- [x] 检查 vite.config.ts 前端构建配置
-- [x] 验证前端构建输出目录（dist/public/）
-- [x] 检查 electron-builder 的 files 配置是否正确
-- [x] 修复 main.ts 中的文件加载路径（../dist/index.html → ../dist/public/index.html）
-- [ ] 测试本地构建验证修复
-
-## 新功能 - Sentry 错误上报集成
-- [x] 安装 Sentry SDK 依赖包（@sentry/electron, @sentry/react）
-- [x] 集成主进程错误捕获（uncaughtException, unhandledRejection）
-- [x] 集成渲染进程错误捕获（React 错误边界、全局错误）
-- [x] 添加用户上下文信息功能（setUser, clearUser）
-- [x] 创建 Sentry 配置说明文档（SENTRY_SETUP.md）
-- [ ] 用户配置 Sentry DSN（需要创建 Sentry 账号）
-- [ ] 测试错误上报功能
-- [ ] 重新构建并验证
-
-## 前端下载页面修改
-- [x] 查找下载页面组件（Download.tsx）
-- [x] 修改 Windows 下载链接指向 GitHub Actions
-- [x] 添加 macOS "敬请期待"提示和开发中说明
-- [x] 隐藏 macOS 的下载组件（版本检查、进度跟踪、校验）
-- [x] 更新 Windows 客户端特性列表（紫色盾牌图标、Sentry 错误上报）
-- [ ] 测试下载页面显示效果
-
-## 3X-UI 节点管理系统集成
-- [ ] 创建 3X-UI API 客户端模块（登录、获取节点列表）
-- [ ] 添加节点数据库表（nodes 表，包含原始配置和自定义别名）
-- [ ] 创建节点管理 tRPC 接口（同步、列表、更新别名）
-- [ ] 创建后台节点管理页面（AdminNodes.tsx）
-- [ ] 实现节点同步功能（手动触发或定时任务）
-- [ ] 实现节点别名编辑功能
-- [ ] 更新客户端节点列表接口（只返回别名）
-- [ ] 配置 3X-UI 认证信息到环境变量
-- [ ] 测试节点同步和显示功能
-- [ ] 提供域名绑定指南和访问地址文档
-
-## 最终构建和域名绑定
-- [x] 提供域名绑定配置指南（dj.siumingho.dpdns.org）
-- [x] 验证 client-src/main.ts 路径修复
-- [x] 创建最终构建指南文档
-- [ ] 用户手动触发 GitHub Actions 构建
-- [ ] 用户下载并验证 Windows 应用界面
-- [ ] 用户反馈构建结果
-
-## 客户端界面问题深度诊断
-- [x] 检查 package.json 中的 electron-builder 配置
-- [x] 验证 files 配置是否包含所有必要文件
-- [x] 检查 main 字段指向是否正确
-- [x] 本地构建测试（pnpm run build）
-- [x] 验证打包后的文件结构（dist_electron, dist/public）
-- [x] 修复发现的问题（添加多路径尝试逻辑）
-- [ ] 触发新构建并验证
-
-## GitHub Actions 自动发布 Release
-- [x] 创建自动发布 Release 的工作流文件（.github/workflows/release.yml）
-- [x] 配置 tag 触发条件（push tags v*）
-- [x] 添加文件校验和计算（MD5 + SHA256）
-- [x] 生成 Release 说明模板（自动生成）
-- [x] 创建 Release 发布指南文档（RELEASE_GUIDE.md）
-- [ ] 用户测试工作流（推送 tag 触发）
-
-## Windows 安装程序优化
-- [x] 配置 NSIS 安装选项（自定义安装路径）
-- [x] 添加桌面快捷方式创建选项
-- [x] 添加开始菜单快捷方式
-- [x] 配置卸载程序
-- [x] 配置安装后自动运行
-- [x] 添加中英文语言支持
-- [ ] 测试安装程序
+## 修复 GitHub Actions 构建错误
+- [x] 修复 package.json 重复的 nsis 配置
+- [x] 检查完整的构建错误日志
+- [x] 修复代码签名错误（移除 certificateFile 配置）
+- [ ] 推送并重新触发构建
