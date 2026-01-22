@@ -8,22 +8,12 @@
     "build": "vite build && tsc -p tsconfig.electron.json && electron-builder",
     "preview": "vite preview"
   },
-  "dependencies": {
-    "vue": "^3.3.4"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-vue": "^4.2.3",
-    "electron": "^25.3.0",
-    "electron-builder": "^24.6.3",
-    "typescript": "^5.0.2",
-    "vite": "^4.4.5",
-    "vue-tsc": "^1.8.5"
-  },
   "build": {
     "appId": "com.logvpn.app",
     "productName": "LogVPN",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "resources"
     },
     "files": [
       "dist/**/*",
