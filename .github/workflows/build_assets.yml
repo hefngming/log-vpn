@@ -46,6 +46,7 @@ jobs:
   build-macos:
     name: Build macOS Installer (x64 + arm64)
     runs-on: macos-latest
+    continue-on-error: true  # Allow macOS build to fail without blocking Windows release
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
