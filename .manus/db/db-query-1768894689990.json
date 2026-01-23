@@ -1,9 +1,0 @@
-{
-  "query": "INSERT INTO nodes (name, country, countryCode, protocol, address, port, settings, isActive, sortOrder) VALUES ('香港-快速专线', 'Hong Kong', 'HK', 'vmess', '2001:bc8:32d7:302::10', 44579, '{\"id\":\"8e34e170-13ae-4892-9d20-05962acc9f84\",\"alterId\":0,\"security\":\"auto\",\"network\":\"ws\",\"path\":\"?ed=2048\"}', true, 1);",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2niMBJFQbqWKXSJ.root --database ik4QKwpUJXHkdpgpXC9yL3 --execute INSERT INTO nodes (name, country, countryCode, protocol, address, port, settings, isActive, sortOrder) VALUES ('香港-快速专线', 'Hong Kong', 'HK', 'vmess', '2001:bc8:32d7:302::10', 44579, '{\"id\":\"8e34e170-13ae-4892-9d20-05962acc9f84\",\"alterId\":0,\"security\":\"auto\",\"network\":\"ws\",\"path\":\"?ed=2048\"}', true, 1);",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 119
-}
