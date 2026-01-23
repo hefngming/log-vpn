@@ -1,16 +1,16 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, bigint, boolean, decimal } from "drizzle-orm/mysql-core";
+import { int, pgEnum, pgTable, text, timestamp, varchar, bigint, boolean, decimal } from "drizzle-orm/pg-core";
 
 /**
  * Core user table backing auth flow.
  */
-export const users = mysqlTable("users", {
+export const users = pgTable("users", {
   id: int("id").autoincrement().primaryKey(),
   openId: varchar("openId", { length: 64 }).unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }).unique(),
   passwordHash: varchar("passwordHash", { length: 255 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: pgEnum("role", ["user", "admin"]).default("user").notNull(),
   activeDeviceId: varchar("activeDeviceId", { length: 255 }),
   activeDeviceSessionId: varchar("activeDeviceSessionId", { length: 255 }),
   lastActiveAt: timestamp("lastActiveAt").defaultNow().notNull(),
@@ -25,11 +25,11 @@ export type InsertUser = typeof users.$inferInsert;
 /**
  * User subscriptions table - tracks VPN subscription status
  */
-export const subscriptions = mysqlTable("subscriptions", {
+export const subscriptions = pgTable("subscriptions", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   planName: varchar("planName", { length: 100 }).notNull(),
-  status: mysqlEnum("status", ["active", "expired", "cancelled", "pending", "suspended"]).default("pending").notNull(),
+  status: pgEnum("status", ["active", "expired", "cancelled", "pending", "suspended"]).default("pending").notNull(),
   trafficLimit: bigint("trafficLimit", { mode: "number" }).default(1073741824).notNull(),
   trafficUsed: bigint("trafficUsed", { mode: "number" }).default(0).notNull(),
   monthlyTrafficLimit: bigint("monthlyTrafficLimit", { mode: "number" }).default(214748364800).notNull(),
@@ -50,13 +50,13 @@ export type InsertSubscription = typeof subscriptions.$inferInsert;
 /**
  * Orders table - tracks payment orders
  */
-export const orders = mysqlTable("orders", {
+export const orders = pgTable("orders", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   orderNo: varchar("orderNo", { length: 64 }).notNull().unique(),
   planName: varchar("planName", { length: 100 }).notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  status: mysqlEnum("status", ["pending", "paid", "failed", "refunded"]).default("pending").notNull(),
+  status: pgEnum("status", ["pending", "paid", "failed", "refunded"]).default("pending").notNull(),
   paymentMethod: varchar("paymentMethod", { length: 50 }),
   paymentTime: timestamp("paymentTime"),
   remark: text("remark"),
@@ -70,12 +70,12 @@ export type InsertOrder = typeof orders.$inferInsert;
 /**
  * VPN Nodes table - stores node information from X-ui
  */
-export const nodes = mysqlTable("nodes", {
+export const nodes = pgTable("nodes", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
   country: varchar("country", { length: 50 }).notNull(),
   countryCode: varchar("countryCode", { length: 10 }).notNull(),
-  protocol: mysqlEnum("protocol", ["vless", "trojan", "shadowsocks", "vmess"]).notNull(),
+  protocol: pgEnum("protocol", ["vless", "trojan", "shadowsocks", "vmess"]).notNull(),
   address: varchar("address", { length: 255 }).notNull(),
   port: int("port").notNull(),
   settings: text("settings"), // JSON string for protocol-specific settings
@@ -91,7 +91,7 @@ export type InsertNode = typeof nodes.$inferInsert;
 /**
  * Subscription plans table
  */
-export const plans = mysqlTable("plans", {
+export const plans = pgTable("plans", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
   description: text("description"),
@@ -110,10 +110,10 @@ export type InsertPlan = typeof plans.$inferInsert;
 /**
  * Payment configurations table - for multiple payment providers
  */
-export const paymentConfigs = mysqlTable("paymentConfigs", {
+export const paymentConfigs = pgTable("paymentConfigs", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
-  provider: mysqlEnum("provider", ["epay", "alipay", "wechat", "manual"]).notNull(),
+  provider: pgEnum("provider", ["epay", "alipay", "wechat", "manual"]).notNull(),
   config: text("config"), // JSON string for provider-specific config
   isActive: boolean("isActive").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -126,7 +126,7 @@ export type InsertPaymentConfig = typeof paymentConfigs.$inferInsert;
 /**
  * System settings table
  */
-export const systemSettings = mysqlTable("systemSettings", {
+export const systemSettings = pgTable("systemSettings", {
   id: int("id").autoincrement().primaryKey(),
   key: varchar("key", { length: 100 }).notNull().unique(),
   value: text("value"),
@@ -140,7 +140,7 @@ export type InsertSystemSetting = typeof systemSettings.$inferInsert;
 /**
  * Traffic logs table - for tracking user traffic
  */
-export const trafficLogs = mysqlTable("trafficLogs", {
+export const trafficLogs = pgTable("trafficLogs", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   nodeId: int("nodeId"),
@@ -158,11 +158,11 @@ export type InsertTrafficLog = typeof trafficLogs.$inferInsert;
  * Used for password reset and security verification
  * Codes expire after 10 minutes and have rate limiting (1 per minute)
  */
-export const verificationCodes = mysqlTable("verificationCodes", {
+export const verificationCodes = pgTable("verificationCodes", {
   id: int("id").autoincrement().primaryKey(),
   email: varchar("email", { length: 320 }).notNull(),
   code: varchar("code", { length: 6 }).notNull(),
-  type: mysqlEnum("type", ["password_reset", "change_password", "register"]).notNull(),
+  type: pgEnum("type", ["password_reset", "change_password", "register"]).notNull(),
   expiresAt: timestamp("expiresAt").notNull(),
   used: boolean("used").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -175,7 +175,7 @@ export type InsertVerificationCode = typeof verificationCodes.$inferInsert;
  * User passwords table (separate from OAuth users)
  * For users who register with email/password
  */
-export const userPasswords = mysqlTable("userPasswords", {
+export const userPasswords = pgTable("userPasswords", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().unique(),
   passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
@@ -191,14 +191,14 @@ export type InsertUserPassword = typeof userPasswords.$inferInsert;
  * Payment proofs table - stores user uploaded payment screenshots
  * Used for manual payment verification workflow
  */
-export const paymentProofs = mysqlTable("paymentProofs", {
+export const paymentProofs = pgTable("paymentProofs", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   userEmail: varchar("userEmail", { length: 320 }),
   planName: varchar("planName", { length: 100 }).notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   imageUrl: text("imageUrl").notNull(), // S3 URL of the uploaded screenshot
-  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  status: pgEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
   adminNote: text("adminNote"), // Admin can add notes when reviewing
   reviewedAt: timestamp("reviewedAt"),
   reviewedBy: int("reviewedBy"), // Admin user ID who reviewed
@@ -213,7 +213,7 @@ export type InsertPaymentProof = typeof paymentProofs.$inferInsert;
  * Device fingerprints table - for device binding and anti-sharing
  * Tracks device identifiers to ensure one account per device
  */
-export const deviceFingerprints = mysqlTable("deviceFingerprints", {
+export const deviceFingerprints = pgTable("deviceFingerprints", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   fingerprint: varchar("fingerprint", { length: 255 }).notNull().unique(),
@@ -243,7 +243,7 @@ export type DeviceFingerprint = typeof deviceFingerprints.$inferSelect;
 export type InsertDeviceFingerprint = typeof deviceFingerprints.$inferInsert;
 
 // Device Whitelist Table
-export const deviceWhitelist = mysqlTable('deviceWhitelist', {
+export const deviceWhitelist = pgTable('deviceWhitelist', {
   id: int('id').autoincrement().primaryKey(),
   userId: int('userId').notNull(),
   maxDevices: int('maxDevices').notNull().default(1),
@@ -257,14 +257,14 @@ export type InsertDeviceWhitelist = typeof deviceWhitelist.$inferInsert;
 
 
 // 推荐系统表
-export const referralCodes = mysqlTable('referral_codes', {
+export const referralCodes = pgTable('referral_codes', {
   id: int('id').autoincrement().primaryKey(),
   userId: int('user_id').notNull().references(() => users.id),
   code: varchar('code', { length: 20 }).notNull().unique(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-export const referralRecords = mysqlTable('referral_records', {
+export const referralRecords = pgTable('referral_records', {
   id: int('id').autoincrement().primaryKey(),
   referrerId: int('referrer_id').notNull().references(() => users.id),
   referredId: int('referred_id').notNull().references(() => users.id),
@@ -278,7 +278,7 @@ export const referralRecords = mysqlTable('referral_records', {
 /**
  * Auto review rules table - defines automatic payment proof review rules
  */
-export const autoReviewRules = mysqlTable("autoReviewRules", {
+export const autoReviewRules = pgTable("autoReviewRules", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 100 }).notNull(), // Rule name
   description: text("description"), // Rule description
@@ -289,7 +289,7 @@ export const autoReviewRules = mysqlTable("autoReviewRules", {
   conditions: text("conditions").notNull(), // { amountMatch: true, minAmount: 199, maxAmount: 199, ... }
   
   // Action
-  action: mysqlEnum("action", ["auto_approve", "auto_reject", "manual_review"]).notNull(),
+  action: pgEnum("action", ["auto_approve", "auto_reject", "manual_review"]).notNull(),
   
   // Auto-approval settings (only used when action is "auto_approve")
   autoApproveDays: int("autoApproveDays").default(30), // Subscription days to grant
@@ -306,12 +306,12 @@ export type InsertAutoReviewRule = typeof autoReviewRules.$inferInsert;
 /**
  * Auto review logs table - tracks automatic review decisions
  */
-export const autoReviewLogs = mysqlTable("autoReviewLogs", {
+export const autoReviewLogs = pgTable("autoReviewLogs", {
   id: int("id").autoincrement().primaryKey(),
   paymentProofId: int("paymentProofId").notNull(), // Reference to paymentProofs table
   ruleId: int("ruleId"), // Which rule was applied (null if no rule matched)
   ruleName: varchar("ruleName", { length: 100 }), // Rule name at the time of execution
-  decision: mysqlEnum("decision", ["auto_approved", "auto_rejected", "manual_review_required", "no_rule_matched"]).notNull(),
+  decision: pgEnum("decision", ["auto_approved", "auto_rejected", "manual_review_required", "no_rule_matched"]).notNull(),
   reason: text("reason"), // Explanation of the decision
   conditionsChecked: text("conditionsChecked"), // JSON string of conditions that were evaluated
   createdAt: timestamp("createdAt").defaultNow().notNull(),

@@ -1,5 +1,6 @@
 import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import { 
   InsertUser, users, 
   subscriptions, InsertSubscription, 
@@ -21,12 +22,14 @@ import { ENV } from './_core/env';
 import { nanoid } from 'nanoid';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _pool: Pool | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      _pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      _db = drizzle(_pool);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -502,30 +505,68 @@ export async function setUserPassword(userId: number, passwordHash: string): Pro
  * Get user password hash
  */
 export async function getUserPasswordHash(userId: number): Promise<string | null> {
-  const db = await getDb();
-  if (!db) return null;
+  // Ensure pool is initialized
+  await getDb();
   
-  const result = await db.select()
-    .from(userPasswords)
-    .where(eq(userPasswords.userId, userId))
-    .limit(1);
+  if (!_pool) {
+    console.warn("[Database] Cannot get password hash: database pool not available");
+    return null;
+  }
   
-  return result.length > 0 ? result[0].passwordHash : null;
+  try {
+    const result = await _pool.query(
+      'SELECT password_hash FROM user_passwords WHERE user_id = $1 LIMIT 1',
+      [userId]
+    );
+    
+    return result.rows.length > 0 ? result.rows[0].password_hash : null;
+  } catch (error) {
+    console.error("[Database] Error in getUserPasswordHash:", error);
+    return null;
+  }
 }
 
 /**
  * Get user by email
  */
 export async function getUserByEmail(email: string) {
-  const db = await getDb();
-  if (!db) return undefined;
+  // Ensure pool is initialized
+  await getDb();
   
-  const result = await db.select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+  if (!_pool) {
+    console.warn("[Database] Cannot get user: database pool not available");
+    return undefined;
+  }
   
-  return result.length > 0 ? result[0] : undefined;
+  try {
+    const result = await _pool.query(
+      'SELECT id, email, name, role, created_at as "createdAt", updated_at as "updatedAt" FROM users WHERE email = $1 LIMIT 1',
+      [email]
+    );
+    
+    if (result.rows.length === 0) return undefined;
+    
+    // Map database row to expected User type
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      email: row.email,
+      name: row.name || null,
+      role: row.role || 'user',
+      openId: null,
+      passwordHash: null,
+      loginMethod: null,
+      activeDeviceId: null,
+      activeDeviceSessionId: null,
+      lastActiveAt: new Date(),
+      createdAt: row.createdAt || new Date(),
+      updatedAt: row.updatedAt || new Date(),
+      lastSignedIn: new Date(),
+    };
+  } catch (error) {
+    console.error("[Database] Error in getUserByEmail:", error);
+    return undefined;
+  }
 }
 
 /**

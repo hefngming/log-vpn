@@ -7,7 +7,7 @@
     "dev": "NODE_ENV=development tsx watch server/_core/index.ts",
     "build:renderer": "vite build",
     "build:main": "esbuild client-src/main.ts --bundle --platform=node --external:electron --format=esm --target=node18 --outfile=dist_electron/main.js",
-    "build:server": "esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "build:server": "esbuild server/_core/index.ts --platform=node --packages=external --external:crypto --bundle --format=esm --outdir=dist",
     "build": "pnpm run build:renderer && pnpm run build:main && pnpm run build:server",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc --noEmit",

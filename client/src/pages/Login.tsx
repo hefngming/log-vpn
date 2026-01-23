@@ -16,30 +16,32 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // 调用后端登录 API
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://dj.siumingho.dpdns.org'}/api/trpc/auth.login`, {
+      // 使用 batch 模式调用 tRPC API
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://dj.siumingho.dpdns.org'}/api/trpc/auth.login?batch=1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          json: { email, password }
+          "0": { json: { email, password } }
         }),
         credentials: 'include',
       });
 
       const data = await response.json();
+      const result = data[0]?.result?.data?.json;
 
-      if (data.result?.data?.json?.success) {
+      if (result?.success) {
         toast.success('登录成功', { description: '欢迎回来！' });
         // 保存用户信息到 localStorage
-        localStorage.setItem('user', JSON.stringify(data.result.data.json.user));
+        localStorage.setItem('user', JSON.stringify(result.user));
         // 跳转到节点页面
         window.location.href = '/nodes';
       } else {
-        toast.error('登录失败', { description: data.result?.data?.json?.message || '邮箱或密码错误' });
+        toast.error('登录失败', { description: result?.message || '邮箱或密码错误' });
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast.error('登录失败', { description: '网络错误，请检查连接' });
     } finally {
       setIsLoading(false);
