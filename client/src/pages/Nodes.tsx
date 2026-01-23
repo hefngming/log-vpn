@@ -17,6 +17,11 @@ export default function Nodes() {
   const [nodes, setNodes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [connectedNodeId, setConnectedNodeId] = useState<number | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  
+  // 检测是否在 Electron 环境中运行
+  const isElectron = typeof window !== 'undefined' && (window as any).electron;
   
   // tRPC query for encrypted nodes
   const encryptedNodesQuery = trpc.nodes.getEncrypted.useQuery();
@@ -65,6 +70,49 @@ export default function Nodes() {
     setCopiedId(nodeId);
     toast.success("订阅链接已复制");
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  // Electron 一键连接功能
+  const handleConnect = async (nodeId: number) => {
+    if (!isElectron) {
+      toast.error("请在 LogVPN 客户端中使用一键连接功能");
+      return;
+    }
+
+    setIsConnecting(true);
+    try {
+      const result = await (window as any).electron.connectVPN(nodeId);
+      if (result.success) {
+        setConnectedNodeId(nodeId);
+        toast.success("✅ 连接成功！");
+      } else {
+        toast.error(`连接失败: ${result.message}`);
+      }
+    } catch (error: any) {
+      toast.error(`连接失败: ${error.message}`);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  // Electron 断开连接功能
+  const handleDisconnect = async () => {
+    if (!isElectron) return;
+
+    setIsConnecting(true);
+    try {
+      const result = await (window as any).electron.disconnectVPN();
+      if (result.success) {
+        setConnectedNodeId(null);
+        toast.success("已断开连接");
+      } else {
+        toast.error(`断开失败: ${result.message}`);
+      }
+    } catch (error: any) {
+      toast.error(`断开失败: ${error.message}`);
+    } finally {
+      setIsConnecting(false);
+    }
   };
 
   return (
@@ -165,24 +213,51 @@ export default function Nodes() {
                     
                     {/* Action Buttons */}
                     <div className="flex gap-2 mt-4">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => copySubscriptionLink(node.id)}
-                      >
-                        {copiedId === node.id ? (
-                          <>
-                            <Check className="w-3 h-3 mr-1" />
-                            已复制
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3 h-3 mr-1" />
-                            复制链接
-                          </>
-                        )}
-                      </Button>
+                      {isElectron ? (
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => connectedNodeId === node.id ? handleDisconnect() : handleConnect(node.id)}
+                          disabled={isConnecting}
+                          variant={connectedNodeId === node.id ? "destructive" : "default"}
+                        >
+                          {isConnecting ? (
+                            <>
+                              <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                              连接中...
+                            </>
+                          ) : connectedNodeId === node.id ? (
+                            <>
+                              <Check className="w-3 h-3 mr-1" />
+                              已连接
+                            </>
+                          ) : (
+                            <>
+                              <Signal className="w-3 h-3 mr-1" />
+                              一键连接
+                            </>
+                          )}
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => copySubscriptionLink(node.id)}
+                        >
+                          {copiedId === node.id ? (
+                            <>
+                              <Check className="w-3 h-3 mr-1" />
+                              已复制
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3 mr-1" />
+                              复制链接
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

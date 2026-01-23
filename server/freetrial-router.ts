@@ -23,7 +23,7 @@ export const freeTrialRouter = router({
 
       const existingRecord = await db.getDeviceFingerprintRecord(input.deviceFingerprint);
       if (existingRecord) {
-        if (existingRecord.expiresAt > new Date()) {
+        if (existingRecord.expiresAt && existingRecord.expiresAt > new Date()) {
           throw new TRPCError({ code: 'CONFLICT', message: '该设备已激活免费版，请等待过期后再试' });
         }
         throw new TRPCError({ code: 'CONFLICT', message: '该设备已使用过免费版体验' });
@@ -83,7 +83,7 @@ export const freeTrialRouter = router({
         return { canUseFreeTrialOnDevice: true };
       }
 
-      const isExpired = record.expiresAt <= new Date();
+      const isExpired = record.expiresAt ? record.expiresAt <= new Date() : true;
       return {
         canUseFreeTrialOnDevice: false,
         message: isExpired ? '该设备的免费版已过期' : '该设备已激活免费版',

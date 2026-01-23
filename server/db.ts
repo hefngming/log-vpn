@@ -657,7 +657,7 @@ export async function isDeviceFingerprintValid(fingerprint: string): Promise<boo
   const record = await getDeviceFingerprintRecord(fingerprint);
   if (!record) return true;
   
-  return record.expiresAt > new Date();
+  return record.expiresAt ? record.expiresAt > new Date() : false;
 }
 
 export async function getUserDeviceFingerprints(userId: number) {

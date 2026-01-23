@@ -15,6 +15,7 @@ import { freeTrialRouter } from "./freetrial-router";
 import { deviceRouter } from "./device-router";
 import { referralRouter } from "./referral-router";
 import { autoReviewRouter } from "./autoreview-router";
+import { clientRouter } from "./routers/client";
 import { encryptNodeList } from "./nodeEncryption";
 import { checkForUpdate, getLatestVersion, getAllVersions, getVersionInfo } from "./versionManagement";
 import { getUserTrafficUsage } from "./trafficQuery";
@@ -33,6 +34,7 @@ export const appRouter = router({
   referral: referralRouter,
   device: deviceRouter,
   autoReview: autoReviewRouter,
+  clientApi: clientRouter,
   
   download: router({
     getFile: publicProcedure

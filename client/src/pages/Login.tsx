@@ -3,13 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,27 +31,16 @@ export default function Login() {
       const data = await response.json();
 
       if (data.result?.data?.json?.success) {
-        toast({
-          title: '登录成功',
-          description: '欢迎回来！',
-        });
+        toast.success('登录成功', { description: '欢迎回来！' });
         // 保存用户信息到 localStorage
         localStorage.setItem('user', JSON.stringify(data.result.data.json.user));
         // 跳转到节点页面
         window.location.href = '/nodes';
       } else {
-        toast({
-          title: '登录失败',
-          description: data.result?.data?.json?.message || '邮箱或密码错误',
-          variant: 'destructive',
-        });
+        toast.error('登录失败', { description: data.result?.data?.json?.message || '邮箱或密码错误' });
       }
     } catch (error) {
-      toast({
-        title: '登录失败',
-        description: '网络错误，请检查连接',
-        variant: 'destructive',
-      });
+      toast.error('登录失败', { description: '网络错误，请检查连接' });
     } finally {
       setIsLoading(false);
     }
